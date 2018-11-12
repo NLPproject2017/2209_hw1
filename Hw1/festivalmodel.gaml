@@ -9,6 +9,7 @@ model festival
 
 global {
 	int guests_init <- 1;
+	int dumb_guests_init <-2;
 	int info_init<-1;
 	int stores_init<-4;
 	
@@ -19,29 +20,30 @@ global {
 	
 	init {
 		create guest number: guests_init ;
-		create info number: info_init
-		{ 
-  			location <- {50,50};
-  			
-		}
-	
+		create dumbGuest number: dumb_guests_init;
 		create store number: stores_init{
 			point p <-{rnd(50),rnd(50)};
 			location<-p;
 			add location to:storesGlobal;
+		}
+		create info number: info_init
+		{ 
+  			location <- {50,50};
+  			stores<-storesGlobal;
 		}
 		
 }
 species info{
 	int size<-3;
 	rgb color <-#red;
-	list<point> stores <- storesGlobal;
+	list<point> stores;
 	
  aspect base {
 		draw square(size) color: color ;
 	}
 }
 species store{
+	
 	int size <-3;
 	rgb color<-#green;
 	aspect base {
@@ -100,8 +102,9 @@ species guest skills: [moving] {
 		
 			loop i from: 0 to: length(currentStores) -1 {
 				
+				//if we already know about all stores
 				if((!(currentStores contains currentStore))){
-					if(length(currentStores)<stores_init){
+					if(length(currentStores)<=stores_init){
 						add currentStore to:currentStores;
 					}
 				}
@@ -167,7 +170,59 @@ species guest skills: [moving] {
 	}
 } }
 
-
+species dumbGuest skills: [moving] {
+	float size <- 1.0 ;
+	rgb color <- #yellow;
+	bool thirsty <-false;
+	store storeList;
+	point currentStore;
+	int n <- rnd(-10);
+	point storeToGoTo;
+		
+	reflex beIdle when: thirsty=false
+	{
+		//write "went idle: "+n;
+		do wander;
+		
+		if(rnd(chance)=1){
+			//get thirsty
+			thirsty<-true;
+		}
+	}
+	// go to information to ask for store
+	reflex goToPoint when: (thirsty=true and currentStore=nil)
+	{
+		do goto target:infoPoint speed: 3.0;
+		
+		if(location distance_to(infoPoint)<2){
+			ask info at_distance 7.1
+			{
+				myself.currentStore<-self.stores[rnd(stores_init-1)]; 
+				write " asked for store";
+				write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
+			
+		}
+	}
+	}
+	// after we got the location of a store
+	reflex goToStore when: thirsty=true and currentStore!=nil{
+			
+			if(storeToGoTo=nil){
+				//pick a random store from known to go to
+				storeToGoTo<-currentStore;
+			}
+			do goto target:storeToGoTo speed: 3.0;
+			if(location distance_to(storeToGoTo)<2){
+				thirsty<-false;
+				write ""+n+": went to store: " + storeToGoTo;	
+				storeToGoTo<-nil;	
+				currentStore<-nil;
+			}	
+	}
+	aspect base {
+		draw circle(size) color: color ;
+	}
+}
 
 experiment main type: gui {
 	parameter "Initial number of preys: " var: guests_init min: 1 max: 1000 category: "Prey" ;
@@ -176,7 +231,7 @@ experiment main type: gui {
 			species guest aspect: base ;
 			species info aspect: base;
 			species store aspect: base;
+			species dumbGuest aspect: base;
 		}
 	}
 }
-//
