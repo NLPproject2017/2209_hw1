@@ -8,7 +8,7 @@
 model festival
 
 global {
-	int guests_init <- 1;
+	int guests_init <- 10;
 	int dumb_guests_init <-2;
 	int info_init<-1;
 	int stores_init<-4;
@@ -54,6 +54,7 @@ species guest skills: [moving] {
 	float size <- 1.0 ;
 	rgb color <- #blue;
 	bool thirsty <-false;
+	bool hungry<-false;
 	store storeList;
 	point currentStore;
 	list<point> currentStores; //list of all stores guest knows of
@@ -61,6 +62,15 @@ species guest skills: [moving] {
 	bool askAgain <- false;
 	bool going <-false;
 	point storeToGoTo;
+	bool knowAll <-false;
+	//traveled
+	int movedDistance;
+	float x1;
+	float y1;
+	float x2;
+	float y2;
+	
+	bool hungryOrThirsty<-true;
 		
 	reflex beIdle when: thirsty=false
 	{
@@ -68,25 +78,43 @@ species guest skills: [moving] {
 		do wander;
 		
 		if(rnd(chance)=1){
-			//get thirsty
-			thirsty<-true;
-			going<-false;
-			//possibly ask for a new store
-			if((rnd(anotherStoreChance)=1) and currentStore !=nil){
-				askAgain <- true;
-				write " askAgain "+askAgain +" name: "+n;
+			//get thirsty or hungry
+			if(hungryOrThirsty){
+				thirsty<-true;
+				hungryOrThirsty<-false;
+			}
+			else{
+				hungry<-true;
+				hungryOrThirsty<-true;
+			}
+			
+			if(knowAll=false){
+				//possibly ask for a new store
+				if((rnd(anotherStoreChance)=1) and (currentStore !=nil)){
+					askAgain <- true;
+					write " askAgain "+askAgain +" name: "+n;
+				}
 			}
 		}
-		
-	
 	}
 	// go to information to ask for first or more stores
-	reflex goToPoint when: (thirsty=true and currentStore=nil) or askAgain
+	reflex goToPoint when: ((hungry or thirsty) and currentStore=nil) or askAgain
 	{
-		
+		// calc distance traveled
+		x1<-location.x;
+		y1<-location.y;
+		//------------------------
 		do goto target:infoPoint speed: 3.0;
 		
 		if(location distance_to(infoPoint)<2){
+			//calc distance traveled
+			x2<-location.x;
+			y2<-location.y;
+			float newDistance <-sqrt(((x2-x1)^2)+(y2-y1)^2);
+			movedDistance <- movedDistance + newDistance;
+			//write " guest: "+n+" moved: "+newDistance +" to infoPoint";
+			write "Guest: "+n+" total distance traveled: "+movedDistance;
+			//------------------------
 			
 			if(askAgain){
 				write "asked for another store " +askAgain;
@@ -100,67 +128,60 @@ species guest skills: [moving] {
 			}
 			//remeber it
 		
-			loop i from: 0 to: length(currentStores) -1 {
+			//loop i from: 0 to: length(currentStores) -1 {
 				
 				//if we already know about all stores
 				if((!(currentStores contains currentStore))){
 					if(length(currentStores)<=stores_init){
 						add currentStore to:currentStores;
 					}
-				}
-				
+					}
 				else{
 					write "already have that one";
 				}
 				write "number in guest list: "+ length(currentStores);
 				write "number of stores to choose from: " +length(storesGlobal);
+				if(length(currentStores)=stores_init){
+					knowAll <-true;
+				}
 				//write "my currentstores: "+currentStores[i];
-			}
-			
-			
+			//}	
 			askAgain<-false;
 		}
-		
-	
 	}
-	
-	/*reflex goAskForAnother when: thirsty=true and currentStore!=nil and (rnd(anotherStoreChance)=1)
-	{
-		
-	}*/
-	/*reflex atPoint when: thirsty=true and currentStore=nil{
-		//if(myself.location){}
-		ask info at_distance 7.1
-		{
-			myself.thirsty<-false; // TODO , fix this we want it to happen in store
-			myself.currentStore<-storesGlobal[rnd(stores_init-1)]; // TODO , fix this we want it to select a random one
-			write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
-			
-		}
-		
-	}*/// gets confused and goes towards different points since it triggers several 
 	// after we got the location of a store
-	reflex goToStore when: thirsty=true and currentStore!=nil and !askAgain{
+	reflex goToStore when: (hungry or thirsty) and currentStore!=nil and !askAgain{
 			
 			if(storeToGoTo=nil){
 				//pick a random store from known to go to
 				storeToGoTo<-currentStores[rnd(length(currentStores)-1)];
 			}
-			
+			// calc distance traveled
+			x1<-location.x;
+			y1<-location.y;
+			//------------------------
 			do goto target:storeToGoTo speed: 3.0;
+			
 			if(location distance_to(storeToGoTo)<2){
-				thirsty<-false;
-				write ""+n+": went to store: " + storeToGoTo;	
+				//calc distance traveled
+				x2<-location.x;
+				y2<-location.y;
+				float newDistance <-sqrt(((x2-x1)^2)+(y2-y1)^2);
+				movedDistance <- movedDistance + newDistance;
+				//write " guest: "+n+" moved: "+newDistance +" to store";
+				write "Guest: "+n+" total distance traveled: "+movedDistance;
+				//------------------------
+				if(thirsty){
+					thirsty<-false;
+					write ""+n+": went to store: " + storeToGoTo+" to drink";
+				}
+				else{
+					hungry<-false;
+					write ""+n+": went to store: " + storeToGoTo+" to eat";
+				}
 				storeToGoTo<-nil;
-				
-				
 			}
-		
-		
-		
 	}
-		
-	
 	/*reflex atStorePoint when:location=currentStore{
 		currentStore<-nil;
 	}
@@ -172,49 +193,96 @@ species guest skills: [moving] {
 
 species dumbGuest skills: [moving] {
 	float size <- 1.0 ;
-	rgb color <- #yellow;
+	rgb color <- #orange;
 	bool thirsty <-false;
+	bool hungry<-false;
 	store storeList;
 	point currentStore;
 	int n <- rnd(-10);
 	point storeToGoTo;
+	//traveled
+	int movedDistance;
+	float x1;
+	float y1;
+	float x2;
+	float y2;
+	
+	bool hungryOrThirsty<-true;
 		
-	reflex beIdle when: thirsty=false
+	reflex beIdle when: hungry=false and thirsty=false
 	{
 		//write "went idle: "+n;
 		do wander;
 		
 		if(rnd(chance)=1){
-			//get thirsty
-			thirsty<-true;
+			//get thirsty or hungry
+			if(hungryOrThirsty){
+				thirsty<-true;
+				hungryOrThirsty<-false;
+			}
+			else{
+				hungry<-true;
+				hungryOrThirsty<-true;
+			}
 		}
 	}
 	// go to information to ask for store
-	reflex goToPoint when: (thirsty=true and currentStore=nil)
+	reflex goToPoint when: ((hungry or thirsty) and currentStore=nil)
 	{
+		// calc distance traveled
+		x1<-location.x;
+		y1<-location.y;
+		//------------------------
 		do goto target:infoPoint speed: 3.0;
-		
+	
 		if(location distance_to(infoPoint)<2){
+			//calc distance traveled
+			x2<-location.x;
+			y2<-location.y;
+			float newDistance <-sqrt(((x2-x1)^2)+(y2-y1)^2);
+			movedDistance <- movedDistance + newDistance;
+			//write "Dumb guest: "+n+" moved: "+newDistance +" to infoPoint";
+			write "DumbGuest: "+n+" total distance traveled: "+movedDistance;
+			//------------------------
 			ask info at_distance 7.1
 			{
 				myself.currentStore<-self.stores[rnd(stores_init-1)]; 
 				write " asked for store";
 				write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
-			
 		}
 	}
 	}
 	// after we got the location of a store
-	reflex goToStore when: thirsty=true and currentStore!=nil{
+	reflex goToStore when: (hungry or thirsty) and currentStore!=nil{
 			
 			if(storeToGoTo=nil){
 				//pick a random store from known to go to
 				storeToGoTo<-currentStore;
 			}
+			// calc distance traveled
+			x1<-location.x;
+			y1<-location.y;
+			//------------------------
 			do goto target:storeToGoTo speed: 3.0;
+			
 			if(location distance_to(storeToGoTo)<2){
-				thirsty<-false;
-				write ""+n+": went to store: " + storeToGoTo;	
+				//calc distance traveled
+				x2<-location.x;
+				y2<-location.y;
+				float newDistance <-sqrt(((x2-x1)^2)+(y2-y1)^2);
+				movedDistance <- movedDistance + newDistance;
+				//write " Dumb guest: "+n+" moved: "+newDistance +" to store";
+				write "DumbGuest: "+n+ " total distance traveled: "+movedDistance;
+				//------------------------
+				
+				if(thirsty){
+					thirsty<-false;
+					write ""+n+": went to store: " + storeToGoTo+" to drink";
+				}
+				else{
+					hungry<-false;
+					write ""+n+": went to store: " + storeToGoTo+" to eat";
+				}	
 				storeToGoTo<-nil;	
 				currentStore<-nil;
 			}	
