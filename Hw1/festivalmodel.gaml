@@ -12,21 +12,24 @@ global {
 	int dumb_guests_init <-2;
 	int info_init<-1;
 	int stores_init<-4;
+	int security_guard_init<-1;
 	
 	point infoPoint<-{50,50};
 	int chance <- 20;
 	int anotherStoreChance<-2;
 	list<point> storesGlobal;
+	bool callingGuard <- false; //
 	
 	init {
 		create guest number: guests_init ;
+		create securityGuard number: security_guard_init ;
 		create dumbGuest number: dumb_guests_init;
 		create store number: stores_init{
 			point p <-{rnd(75),rnd(75)};
 			location<-p;
 			add location to:storesGlobal;
-			foodAvailable <- 2; //--------------
-  			drinkAvailable<-5; //--------------
+			foodAvailable <- 2000; //--------------
+  			drinkAvailable<-5000; //--------------
   			n<-"Store "+rnd(stores_init); //---------
 		}
 		create info number: info_init
@@ -41,7 +44,9 @@ species info{
 	rgb color <-#red;
 	list<point> stores;
 	list<point> emptyStores;
-
+	agent badAgentLocation;
+	int badGuestNumber;
+	
 	
  aspect base {
 		draw square(size) color: color ;
@@ -49,7 +54,7 @@ species info{
 }
 species store{
 	
-	int size <-3;
+	int size <-5;
 	rgb color<-#green;
 	int foodAvailable; //--------------
 	int drinkAvailable; //--------------
@@ -60,6 +65,88 @@ species store{
 		draw square(size) color: color ;
 	}
 }
+
+species securityGuard  skills: [moving]{
+	
+	int size <-3;
+	rgb color<-#cyan;
+	bool noAction <- true; //
+	agent badAgentLocation;
+	int badGuestNumber;
+
+	reflex beIdle when: noAction and callingGuard = false and badAgentLocation = nil
+	{
+		//write "went idle: "+n;
+		do wander;
+		
+		if(rnd(chance)=1){
+		}
+	}
+	
+	
+	reflex goToInfoPoint when: callingGuard
+	{
+		
+		
+		do goto target:infoPoint speed: 3.0;
+		
+		if(location distance_to(infoPoint)<2){
+			
+			ask info at_distance 7.1
+			{
+				
+				if (self.badAgentLocation !=nil){
+					write "Bad Guest found. Going to Information Desc";
+					
+					myself.badAgentLocation <- self.badAgentLocation;
+					myself.badGuestNumber <- self.badGuestNumber;
+					callingGuard <-false;
+				}
+			}
+			
+		}
+		
+	}
+	
+	reflex catchAndKill when: badAgentLocation!= nil
+	{
+	
+		do goto target:badAgentLocation speed: 3.0;
+		
+		if(location distance_to(badAgentLocation)<2){
+			if(callingGuard){
+			write "Got the location of bad guest. Going to kill now";
+			}
+			ask guest at_distance 3.1
+			{
+				if (myself.badGuestNumber = self.n){
+					write "Guest number " + self.n + " killed"; 
+					self.beingKilled <-true;
+					
+					myself.badAgentLocation<-nil;
+					myself.badGuestNumber <- nil;
+				}
+			}
+			
+			ask dumbGuest at_distance 3.1
+			{
+				if (myself.badGuestNumber = self.n){
+					write "Guest number " + self.n + " killed"; 
+					self.beingKilled <-true;
+					
+					myself.badAgentLocation<-nil;
+					myself.badGuestNumber <- nil;
+				}
+			}
+		}
+		
+	}
+	
+	aspect base {
+		draw cylinder(3.1,1)  color: color ;
+	}
+}
+
 species guest skills: [moving] {
 	float size <- 1.0 ;
 	rgb color <- #blue;
@@ -84,6 +171,11 @@ species guest skills: [moving] {
 	bool storeEmpty<-false;
 	
 	bool hungryOrThirsty<-true;
+	
+	bool beingKilled <-false;
+	reflex die when: beingKilled  {
+		do die ;
+	}
 		
 	reflex beIdle when: thirsty=false
 	{
@@ -125,10 +217,7 @@ species guest skills: [moving] {
 	}*/
 	reflex goToPoint when: ((hungry or thirsty) and currentStore=nil) or askAgain or storeEmpty
 	{
-		if(storeEmpty){
-			write " Store EMPTY agent going to info";
-			
-		}
+		
 		// calc distance traveled
 		x1<-location.x;
 		y1<-location.y;
@@ -148,7 +237,16 @@ species guest skills: [moving] {
 			
 			ask info at_distance 7.1
 			{
+				if (rnd(chance)=5) //Randomly choosen as BadAgent
+				{
+					write "Guest number: " + myself.n + " is declared as Bad Guest. Security Called.";
+					callingGuard <- true;
+					self.badAgentLocation <- myself;
+					self.badGuestNumber <- myself.n;
+				}
+				
 				if (myself.emptyStoreInfo!=nil){
+					write "I am agent" + myself.n + ", was at Store "+ myself.emptyStoreInfo + ". It was EMPTY!";
 					
 					//to ignore duplicates
 					if((!(self.emptyStores contains myself.emptyStoreInfo))){
@@ -158,9 +256,10 @@ species guest skills: [moving] {
 						write "Empty Store: " + myself.emptyStoreInfo+ " is reported and removed from Info store list, length: "+length(stores)+" emptyStores: "+length(emptyStores);
 						myself.emptyStoreInfo<-nil;
 					}
+					myself.emptyStoreInfo<-nil;
 					
 				}
-			if(length(self.stores)>0){
+				if(length(self.stores)>0){
 				if(myself.askAgain){
 					write "SELF.STORES" + length(self.stores);
 					write "asked for another store " +myself.askAgain;
@@ -172,7 +271,13 @@ species guest skills: [moving] {
 					write " asked for first store";
 					write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
 					}
-			}
+				}
+				else{
+					write "Food And Drink are finished at stores. Please come back later.";
+					myself.thirsty <-false;
+					myself.hungry <-false;
+					//myself.askAgain<-false;
+				}
 			}
 			//remeber it
 		
@@ -189,7 +294,7 @@ species guest skills: [moving] {
 					}
 				}
 				
-				write "number in guest list: "+ length(currentStores);
+				write "Store number in guest memory: "+ length(currentStores);
 				write "number of stores to choose from: " +length(storesGlobal);
 				if(length(currentStores)=stores_init){
 					knowAll <-true;
@@ -287,6 +392,11 @@ species dumbGuest skills: [moving] {
 	bool storeEmpty;
 	
 	bool hungryOrThirsty<-true;
+	
+	bool beingKilled <-false;
+	reflex die when: beingKilled  {
+		do die ;
+	}
 		
 	reflex beIdle when: hungry=false and thirsty=false
 	{
@@ -325,6 +435,14 @@ species dumbGuest skills: [moving] {
 			//------------------------
 			ask info at_distance 7.1
 			{
+				if (rnd(chance)=5) //Randomly choosen as BadAgent
+				{
+					write "Guest number: " + myself.n + " is declared as Bad Guest. Security Called.";
+					callingGuard <- true;
+					self.badAgentLocation <- myself;
+					self.badGuestNumber <- myself.n;
+				}
+				
 				if (myself.emptyStoreInfo!=nil){
 						//to ignore duplicates
 					if((!(self.emptyStores contains myself.emptyStoreInfo))){
@@ -434,6 +552,7 @@ experiment main type: gui {
 			species info aspect: base;
 			species store aspect: base;
 			species dumbGuest aspect: base;
+			species securityGuard aspect: base;
 		}
 	}
 }
