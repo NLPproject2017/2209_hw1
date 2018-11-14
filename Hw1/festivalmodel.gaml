@@ -25,6 +25,9 @@ global {
 			point p <-{rnd(50),rnd(50)};
 			location<-p;
 			add location to:storesGlobal;
+			foodAvailable <- 10; //--------------
+  			drinkAvailable<-20; //--------------
+  			n<-"Store "+rnd(stores_init); //---------
 		}
 		create info number: info_init
 		{ 
@@ -37,6 +40,7 @@ species info{
 	int size<-3;
 	rgb color <-#red;
 	list<point> stores;
+
 	
  aspect base {
 		draw square(size) color: color ;
@@ -46,6 +50,10 @@ species store{
 	
 	int size <-3;
 	rgb color<-#green;
+	int foodAvailable; //--------------
+	int drinkAvailable; //--------------
+	string n; //----------
+	
 	aspect base {
 		draw square(size) color: color ;
 	}
@@ -173,13 +181,15 @@ species guest skills: [moving] {
 				//------------------------
 				if(thirsty){
 					thirsty<-false;
+					// TODO remove drink from store
 					write ""+n+": went to store: " + storeToGoTo+" to drink";
 				}
 				else{
+					// TODO  remove food from store
 					hungry<-false;
 					write ""+n+": went to store: " + storeToGoTo+" to eat";
 				}
-				storeToGoTo<-nil;
+				storeToGoTo<- nil;
 			}
 	}
 	/*reflex atStorePoint when:location=currentStore{
@@ -189,7 +199,7 @@ species guest skills: [moving] {
 	aspect base {
 		draw circle(size) color: color ;
 	}
-} }
+} 
 
 species dumbGuest skills: [moving] {
 	float size <- 1.0 ;
@@ -274,26 +284,30 @@ species dumbGuest skills: [moving] {
 				//write " Dumb guest: "+n+" moved: "+newDistance +" to store";
 				write "DumbGuest: "+n+ " total distance traveled: "+movedDistance;
 				//------------------------
-				
-				if(thirsty){
-					thirsty<-false;
-					write ""+n+": went to store: " + storeToGoTo+" to drink";
-				}
-				else{
-					hungry<-false;
-					write ""+n+": went to store: " + storeToGoTo+" to eat";
+				ask store at_distance 2 //--------- added and edited ask
+				{
+					if(myself.thirsty){
+						myself.thirsty<-false;
+						self.drinkAvailable <-self.drinkAvailable-1;
+						write ""+myself.n+": went to store: " + myself.storeToGoTo+" to drink, there were: "+drinkAvailable+" drinks left";
+						}
+					else{
+						myself.hungry<-false;
+						self.foodAvailable <-self.foodAvailable-1;
+						write ""+myself.n+": went to store: " + myself.storeToGoTo+" to eat, there were: "+foodAvailable+"food left";
+					}	
+				myself.storeToGoTo<-nil;	
+				myself.currentStore<-nil;
 				}	
-				storeToGoTo<-nil;	
-				currentStore<-nil;
-			}	
-	}
+	}}
 	aspect base {
 		draw circle(size) color: color ;
 	}
 }
-
+}
 experiment main type: gui {
-	parameter "Initial number of preys: " var: guests_init min: 1 max: 1000 category: "Prey" ;
+	parameter "Initial number of guests: " var: guests_init min: 1 max: 1000 category: "Guests" ;
+	parameter "Initial number of dumb guests: " var: dumb_guests_init min: 1 max: 1000 category: "Guests" ;
 	output {
 		display main_display {
 			species guest aspect: base ;
