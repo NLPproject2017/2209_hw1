@@ -11,7 +11,7 @@ global {
 	int guests_init <- 10;
 	int dumb_guests_init <-2;
 	int info_init<-1;
-	int stores_init<-4;
+	int stores_init<-1;
 	
 	point infoPoint<-{50,50};
 	int chance <- 20;
@@ -22,7 +22,7 @@ global {
 		create guest number: guests_init ;
 		create dumbGuest number: dumb_guests_init;
 		create store number: stores_init{
-			point p <-{rnd(50),rnd(50)};
+			point p <-{rnd(75),rnd(75)};
 			location<-p;
 			add location to:storesGlobal;
 			foodAvailable <- 10; //--------------
@@ -78,6 +78,8 @@ species guest skills: [moving] {
 	float x2;
 	float y2;
 	
+	bool storeEmpty<-false;
+	
 	bool hungryOrThirsty<-true;
 		
 	reflex beIdle when: thirsty=false
@@ -106,8 +108,9 @@ species guest skills: [moving] {
 		}
 	}
 	// go to information to ask for first or more stores
-	reflex goToPoint when: ((hungry or thirsty) and currentStore=nil) or askAgain
+	reflex goToPoint when: ((hungry or thirsty) and currentStore=nil) or askAgain //or storeEmpty
 	{
+		
 		// calc distance traveled
 		x1<-location.x;
 		y1<-location.y;
@@ -124,15 +127,19 @@ species guest skills: [moving] {
 			write "Guest: "+n+" total distance traveled: "+movedDistance;
 			//------------------------
 			
-			if(askAgain){
-				write "asked for another store " +askAgain;
-				currentStore<-storesGlobal[rnd(stores_init-1)]; 
+			ask info at_distance 7.1
+			{
+			if(myself.askAgain){
+				write "asked for another store " +myself.askAgain;
+				myself.currentStore<-self.stores[rnd(stores_init-1)];  
 				
 			}	
 			else{		
-				currentStore<-storesGlobal[rnd(stores_init-1)]; 
+				myself.currentStore<-self.stores[rnd(stores_init-1)];  
 				write " asked for first store";
-				write "I am going to store at: "+currentStore + " name: "+ n;
+				write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
+			}
+			
 			}
 			//remeber it
 		
@@ -179,15 +186,28 @@ species guest skills: [moving] {
 				//write " guest: "+n+" moved: "+newDistance +" to store";
 				write "Guest: "+n+" total distance traveled: "+movedDistance;
 				//------------------------
-				if(thirsty){
-					thirsty<-false;
-					// TODO remove drink from store
-					write ""+n+": went to store: " + storeToGoTo+" to drink";
-				}
+				ask store at_distance 2 //--------- added and edited ask
+				{
+				if(myself.thirsty){
+				//if(self.drinkAvailable>0){
+					myself.thirsty<-false;
+					// remove drink from store
+					self.drinkAvailable <- self.drinkAvailable-1;
+					
+					write ""+myself.n+": went to store: " + myself.storeToGoTo+" to eat, there were: "+drinkAvailable+"drink left";
+				
+				/*else{
+					myself.storeEmpty<-true;
+					write "store was empty, going wandering";
+					write "drink available" + self.drinkAvailable;
+				}*/}
 				else{
-					// TODO  remove food from store
-					hungry<-false;
-					write ""+n+": went to store: " + storeToGoTo+" to eat";
+					// remove food from store
+					self.foodAvailable <- self.foodAvailable-1;
+					myself.hungry<-false;
+					write ""+myself.n+": went to store: " + myself.storeToGoTo+" to eat, there were: "+foodAvailable+"food left";
+				}
+				
 				}
 				storeToGoTo<- nil;
 			}
@@ -317,3 +337,10 @@ experiment main type: gui {
 		}
 	}
 }
+// add Shakhroms code
+// add ask to guest (info and store)¨
+
+//---- Creative
+
+// add same kind of food and drink handling in uest as in dumb guest
+// do something when food/ drink runs out
