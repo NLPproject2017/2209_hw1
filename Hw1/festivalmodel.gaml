@@ -81,8 +81,6 @@ species guest skills: [moving] {
 	float y2;
 	point emptyStoreInfo;
 	
-	
-	
 	bool storeEmpty<-false;
 	
 	bool hungryOrThirsty<-true;
@@ -151,18 +149,26 @@ species guest skills: [moving] {
 			ask info at_distance 7.1
 			{
 				if (myself.emptyStoreInfo!=nil){
-					write "Empty Store is reported and removed from Info store list";
-					remove myself.emptyStoreInfo from: self.stores;
-					add myself.emptyStoreInfo to: self.emptyStores;
-					myself.emptyStoreInfo<-nil;
+					
+					//to ignore duplicates
+					if((!(self.emptyStores contains myself.emptyStoreInfo))){
+						remove myself.emptyStoreInfo from: self.stores;
+						add myself.emptyStoreInfo to:self.emptyStores;
+						//keeps adding duplicates of empty stores
+						write "Empty Store: " + myself.emptyStoreInfo+ " is reported and removed from Info store list, length: "+length(stores)+" emptyStores: "+length(emptyStores);
+						myself.emptyStoreInfo<-nil;
+					}
+					
 				}
 			if(length(self.stores)>0){
 				if(myself.askAgain){
+					write "SELF.STORES" + length(self.stores);
 					write "asked for another store " +myself.askAgain;
-					myself.currentStore<-self.stores[rnd(stores_init-1)];  
+					//has to be dynamic
+					myself.currentStore<-self.stores[rnd(length(self.stores)-1)];  
 				}	
 				else{		
-					myself.currentStore<-self.stores[rnd(stores_init-1)];  
+					myself.currentStore<-self.stores[rnd(length(self.stores)-1)];  
 					write " asked for first store";
 					write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
 					}
@@ -320,13 +326,19 @@ species dumbGuest skills: [moving] {
 			ask info at_distance 7.1
 			{
 				if (myself.emptyStoreInfo!=nil){
+						//to ignore duplicates
+					if((!(self.emptyStores contains myself.emptyStoreInfo))){
 						remove myself.emptyStoreInfo from: self.stores;
-						add myself.emptyStoreInfo to: self.emptyStores;
+						add myself.emptyStoreInfo to:self.emptyStores;
+						//keeps adding duplicates of empty stores
+						write "Empty Store: " + myself.emptyStoreInfo+ " is reported and removed from Info store list, length: "+length(stores)+" emptyStores: "+length(emptyStores);
 						myself.emptyStoreInfo<-nil;
-						write "Empty store is removed from Store List";
 					}
-				if(length(self.stores)>0){
-					myself.currentStore<-self.stores[rnd(stores_init-1)]; 
+					}
+				if(length(self.stores)>=1){
+					write "currentStore: "+myself.currentStore+" length stores: "+length(stores);
+					int rand <-rnd(length(self.stores)-1);
+					myself.currentStore<-self.stores[rand]; 
 					write "all stores are empty. waiting in Info Desc";
 				}
 				write " asked for store";
