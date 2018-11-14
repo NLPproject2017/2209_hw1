@@ -8,28 +8,26 @@
 model festival
 
 global {
-	int guests_init <- 10;
+	int guests_init <- 1;
 	int dumb_guests_init <-2;
 	int info_init<-1;
-	int stores_init<-4;
-	int security_guard_init<-1;
+	int stores_init<-1;
 	
 	point infoPoint<-{50,50};
 	int chance <- 20;
 	int anotherStoreChance<-2;
 	list<point> storesGlobal;
-	bool callingGuard <- false; //
+	bool light<-false; //light is turned on when info center wants the worker to come
 	
 	init {
 		create guest number: guests_init ;
-		create securityGuard number: security_guard_init ;
-		create dumbGuest number: dumb_guests_init;
+		//create dumbGuest number: dumb_guests_init;
 		create store number: stores_init{
 			point p <-{rnd(75),rnd(75)};
 			location<-p;
 			add location to:storesGlobal;
-			foodAvailable <- 2000; //--------------
-  			drinkAvailable<-5000; //--------------
+			foodAvailable <- 2; //--------------
+  			drinkAvailable<-5; //--------------
   			n<-"Store "+rnd(stores_init); //---------
 		}
 		create info number: info_init
@@ -37,6 +35,7 @@ global {
   			location <- {50,50};
   			stores<-storesGlobal;
 		}
+		create festivalWorker number: 1;
 		
 }
 species info{
@@ -44,9 +43,15 @@ species info{
 	rgb color <-#red;
 	list<point> stores;
 	list<point> emptyStores;
-	agent badAgentLocation;
-	int badGuestNumber;
+	bool handled<-false;
 	
+	reflex requestAWorker when: (length(stores)<length(emptyStores))// and !handled{
+	{
+		write "WORKER ACTIVATED!";
+		light<-true;
+		handled<-true;
+	}
+
 	
  aspect base {
 		draw square(size) color: color ;
@@ -54,7 +59,7 @@ species info{
 }
 species store{
 	
-	int size <-5;
+	int size <-3;
 	rgb color<-#green;
 	int foodAvailable; //--------------
 	int drinkAvailable; //--------------
@@ -171,11 +176,6 @@ species guest skills: [moving] {
 	bool storeEmpty<-false;
 	
 	bool hungryOrThirsty<-true;
-	
-	bool beingKilled <-false;
-	reflex die when: beingKilled  {
-		do die ;
-	}
 		
 	reflex beIdle when: thirsty=false
 	{
@@ -217,7 +217,10 @@ species guest skills: [moving] {
 	}*/
 	reflex goToPoint when: ((hungry or thirsty) and currentStore=nil) or askAgain or storeEmpty
 	{
-		
+		if(storeEmpty){
+			write " Store EMPTY agent going to info";
+			
+		}
 		// calc distance traveled
 		x1<-location.x;
 		y1<-location.y;
@@ -237,29 +240,20 @@ species guest skills: [moving] {
 			
 			ask info at_distance 7.1
 			{
-				if (rnd(chance)=5) //Randomly choosen as BadAgent
-				{
-					write "Guest number: " + myself.n + " is declared as Bad Guest. Security Called.";
-					callingGuard <- true;
-					self.badAgentLocation <- myself;
-					self.badGuestNumber <- myself.n;
-				}
-				
 				if (myself.emptyStoreInfo!=nil){
-					write "I am agent" + myself.n + ", was at Store "+ myself.emptyStoreInfo + ". It was EMPTY!";
 					
 					//to ignore duplicates
 					if((!(self.emptyStores contains myself.emptyStoreInfo))){
 						remove myself.emptyStoreInfo from: self.stores;
 						add myself.emptyStoreInfo to:self.emptyStores;
 						//keeps adding duplicates of empty stores
-						write "Empty Store: " + myself.emptyStoreInfo+ " is reported and removed from Info store list, length: "+length(stores)+" emptyStores: "+length(emptyStores);
+						write "Empty Store: " + myself.emptyStoreInfo+ " is reported and removed from Info store list, length: "+length(self.stores)+" emptyStores: "+length(self.emptyStores);
 						myself.emptyStoreInfo<-nil;
 					}
-					myself.emptyStoreInfo<-nil;
 					
 				}
-				if(length(self.stores)>0){
+				// get store location from point
+			if(length(self.stores)>0){
 				if(myself.askAgain){
 					write "SELF.STORES" + length(self.stores);
 					write "asked for another store " +myself.askAgain;
@@ -271,13 +265,13 @@ species guest skills: [moving] {
 					write " asked for first store";
 					write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
 					}
-				}
-				else{
-					write "Food And Drink are finished at stores. Please come back later.";
-					myself.thirsty <-false;
-					myself.hungry <-false;
-					//myself.askAgain<-false;
-				}
+			}
+			else{ 					
+				write "Food And Drink are finished at stores. Please come back later."; 					
+				myself.thirsty <-false; 					
+				myself.hungry <-false; 					
+				//myself.askAgain<-false; 	
+				}	
 			}
 			//remeber it
 		
@@ -294,8 +288,8 @@ species guest skills: [moving] {
 					}
 				}
 				
-				write "Store number in guest memory: "+ length(currentStores);
-				write "number of stores to choose from: " +length(storesGlobal);
+				write "number in guest list: "+ length(currentStores);
+				//write "number of stores to choose from: " +length(storesGlobal);
 				if(length(currentStores)=stores_init){
 					knowAll <-true;
 				}
@@ -392,11 +386,6 @@ species dumbGuest skills: [moving] {
 	bool storeEmpty;
 	
 	bool hungryOrThirsty<-true;
-	
-	bool beingKilled <-false;
-	reflex die when: beingKilled  {
-		do die ;
-	}
 		
 	reflex beIdle when: hungry=false and thirsty=false
 	{
@@ -435,29 +424,23 @@ species dumbGuest skills: [moving] {
 			//------------------------
 			ask info at_distance 7.1
 			{
-				if (rnd(chance)=5) //Randomly choosen as BadAgent
-				{
-					write "Guest number: " + myself.n + " is declared as Bad Guest. Security Called.";
-					callingGuard <- true;
-					self.badAgentLocation <- myself;
-					self.badGuestNumber <- myself.n;
-				}
-				
 				if (myself.emptyStoreInfo!=nil){
 						//to ignore duplicates
 					if((!(self.emptyStores contains myself.emptyStoreInfo))){
+						write "stores length "+ length(stores);
 						remove myself.emptyStoreInfo from: self.stores;
+						
 						add myself.emptyStoreInfo to:self.emptyStores;
 						//keeps adding duplicates of empty stores
 						write "Empty Store: " + myself.emptyStoreInfo+ " is reported and removed from Info store list, length: "+length(stores)+" emptyStores: "+length(emptyStores);
 						myself.emptyStoreInfo<-nil;
 					}
 					}
-				if(length(self.stores)>=1){
+				if(length(self.stores)>0){
 					write "currentStore: "+myself.currentStore+" length stores: "+length(stores);
 					int rand <-rnd(length(self.stores)-1);
 					myself.currentStore<-self.stores[rand]; 
-					write "all stores are empty. waiting in Info Desc";
+					//write "all stores are empty. waiting in Info Desc";
 				}
 				write " asked for store";
 				write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
@@ -542,6 +525,66 @@ species dumbGuest skills: [moving] {
 		draw circle(size) color: color ;
 	}
 }
+species festivalWorker skills: [moving]{
+	float size <- 2.0 ;
+	rgb color <- #purple;
+	point storeToGoTo<-nil;
+	bool delivered<-false;
+	
+	reflex calledToInfo when:light{
+		
+		do goto target:infoPoint speed: 3.0;
+	
+		if(location distance_to(infoPoint)<2){
+			ask info at_distance 2
+			{
+				//get first empty in list and remove it
+				write "empty stores = "+length(self.emptyStores);
+				myself.storeToGoTo<-first(self.emptyStores);
+				remove myself.storeToGoTo from: self.emptyStores;
+				self.handled<-false;
+				
+			}
+		}
+	}
+	reflex goToStore when: storeToGoTo!=nil{
+		do goto target:storeToGoTo speed: 3.0;
+	
+		if(location distance_to(storeToGoTo)<2){
+			ask store at_distance 2
+			{
+				self.foodAvailable<-20;
+				self.drinkAvailable<-20;
+				
+			}
+			storeToGoTo<-nil;
+			delivered<-true;
+			
+			}
+	}
+	reflex reportToInfo when:delivered{
+		do goto target:infoPoint speed: 3.0;
+	
+		if(location distance_to(infoPoint)<2){
+			ask info at_distance 2
+			{
+				add myself.storeToGoTo to:self.stores;
+				remove myself.storeToGoTo from: self.emptyStores;
+				myself.delivered<-false;
+				light<-false;
+			}}
+	
+
+	}
+	reflex idle when: !light{
+		do wander;
+		
+	}
+	
+	aspect base {
+		draw circle(size) color: color ;
+	}
+}
 }
 experiment main type: gui {
 	parameter "Initial number of guests: " var: guests_init min: 1 max: 1000 category: "Guests" ;
@@ -552,7 +595,7 @@ experiment main type: gui {
 			species info aspect: base;
 			species store aspect: base;
 			species dumbGuest aspect: base;
-			species securityGuard aspect: base;
+			species festivalWorker aspect: base;
 		}
 	}
 }
