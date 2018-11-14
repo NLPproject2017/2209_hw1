@@ -11,7 +11,7 @@ global {
 	int guests_init <- 10;
 	int dumb_guests_init <-2;
 	int info_init<-1;
-	int stores_init<-1;
+	int stores_init<-4;
 	
 	point infoPoint<-{50,50};
 	int chance <- 20;
@@ -25,8 +25,8 @@ global {
 			point p <-{rnd(75),rnd(75)};
 			location<-p;
 			add location to:storesGlobal;
-			foodAvailable <- 10; //--------------
-  			drinkAvailable<-20; //--------------
+			foodAvailable <- 2; //--------------
+  			drinkAvailable<-5; //--------------
   			n<-"Store "+rnd(stores_init); //---------
 		}
 		create info number: info_init
@@ -40,6 +40,7 @@ species info{
 	int size<-3;
 	rgb color <-#red;
 	list<point> stores;
+	list<point> emptyStores;
 
 	
  aspect base {
@@ -53,6 +54,7 @@ species store{
 	int foodAvailable; //--------------
 	int drinkAvailable; //--------------
 	string n; //----------
+	
 	
 	aspect base {
 		draw square(size) color: color ;
@@ -77,6 +79,9 @@ species guest skills: [moving] {
 	float y1;
 	float x2;
 	float y2;
+	point emptyStoreInfo;
+	
+	
 	
 	bool storeEmpty<-false;
 	
@@ -108,9 +113,24 @@ species guest skills: [moving] {
 		}
 	}
 	// go to information to ask for first or more stores
-	reflex goToPoint when: ((hungry or thirsty) and currentStore=nil) or askAgain //or storeEmpty
-	{
+	
+	
+	/*reflex goToInfoEmpty when: storeEmpty and thirsty{
 		
+		do goto target:infoPoint speed: 3.0;
+		write " store empty--> going";
+		if(location distance_to(infoPoint)<2){
+			write " AGENT IS AT STORE";
+			 storeEmpty<-false;
+			}
+		
+	}*/
+	reflex goToPoint when: ((hungry or thirsty) and currentStore=nil) or askAgain or storeEmpty
+	{
+		if(storeEmpty){
+			write " Store EMPTY agent going to info";
+			
+		}
 		// calc distance traveled
 		x1<-location.x;
 		y1<-location.y;
@@ -118,6 +138,7 @@ species guest skills: [moving] {
 		do goto target:infoPoint speed: 3.0;
 		
 		if(location distance_to(infoPoint)<2){
+			storeEmpty<-false;
 			//calc distance traveled
 			x2<-location.x;
 			y2<-location.y;
@@ -129,22 +150,28 @@ species guest skills: [moving] {
 			
 			ask info at_distance 7.1
 			{
-			if(myself.askAgain){
-				write "asked for another store " +myself.askAgain;
-				myself.currentStore<-self.stores[rnd(stores_init-1)];  
-				
-			}	
-			else{		
-				myself.currentStore<-self.stores[rnd(stores_init-1)];  
-				write " asked for first store";
-				write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
+				if (myself.emptyStoreInfo!=nil){
+					write "Empty Store is reported and removed from Info store list";
+					remove myself.emptyStoreInfo from: self.stores;
+					add myself.emptyStoreInfo to: self.emptyStores;
+					myself.emptyStoreInfo<-nil;
+				}
+			if(length(self.stores)>0){
+				if(myself.askAgain){
+					write "asked for another store " +myself.askAgain;
+					myself.currentStore<-self.stores[rnd(stores_init-1)];  
+				}	
+				else{		
+					myself.currentStore<-self.stores[rnd(stores_init-1)];  
+					write " asked for first store";
+					write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
+					}
 			}
-			
 			}
 			//remeber it
 		
 			//loop i from: 0 to: length(currentStores) -1 {
-				
+				if(currentStore != nil){
 				//if we already know about all stores
 				if((!(currentStores contains currentStore))){
 					if(length(currentStores)<=stores_init){
@@ -153,7 +180,9 @@ species guest skills: [moving] {
 					}
 				else{
 					write "already have that one";
+					}
 				}
+				
 				write "number in guest list: "+ length(currentStores);
 				write "number of stores to choose from: " +length(storesGlobal);
 				if(length(currentStores)=stores_init){
@@ -189,23 +218,35 @@ species guest skills: [moving] {
 				ask store at_distance 2 //--------- added and edited ask
 				{
 				if(myself.thirsty){
-				//if(self.drinkAvailable>0){
+				if(self.drinkAvailable>0){
 					myself.thirsty<-false;
 					// remove drink from store
 					self.drinkAvailable <- self.drinkAvailable-1;
 					
-					write ""+myself.n+": went to store: " + myself.storeToGoTo+" to eat, there were: "+drinkAvailable+"drink left";
-				
-				/*else{
+					write ""+myself.n+": went to store: " + self.n+" to eat, there were: "+drinkAvailable+"drink left";
+				}
+				else{
 					myself.storeEmpty<-true;
+					myself.emptyStoreInfo<-self.location;
+					myself.currentStore<-nil;
 					write "store was empty, going wandering";
 					write "drink available" + self.drinkAvailable;
-				}*/}
+				}}
 				else{
+					if(self.foodAvailable>0){
 					// remove food from store
 					self.foodAvailable <- self.foodAvailable-1;
 					myself.hungry<-false;
-					write ""+myself.n+": went to store: " + myself.storeToGoTo+" to eat, there were: "+foodAvailable+"food left";
+					write ""+myself.n+": went to store: " + self.n+" to eat, there were: "+foodAvailable+"food left";
+					}
+					else{
+						myself.storeEmpty<-true;
+						myself.emptyStoreInfo<-self.location;
+						myself.currentStore<-nil;
+						
+						write "store was empty, going wandering";
+						write "food available" + self.foodAvailable;
+					}
 				}
 				
 				}
@@ -236,6 +277,8 @@ species dumbGuest skills: [moving] {
 	float y1;
 	float x2;
 	float y2;
+	point emptyStoreInfo;
+	bool storeEmpty;
 	
 	bool hungryOrThirsty<-true;
 		
@@ -276,7 +319,16 @@ species dumbGuest skills: [moving] {
 			//------------------------
 			ask info at_distance 7.1
 			{
-				myself.currentStore<-self.stores[rnd(stores_init-1)]; 
+				if (myself.emptyStoreInfo!=nil){
+						remove myself.emptyStoreInfo from: self.stores;
+						add myself.emptyStoreInfo to: self.emptyStores;
+						myself.emptyStoreInfo<-nil;
+						write "Empty store is removed from Store List";
+					}
+				if(length(self.stores)>0){
+					myself.currentStore<-self.stores[rnd(stores_init-1)]; 
+					write "all stores are empty. waiting in Info Desc";
+				}
 				write " asked for store";
 				write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
 		}
@@ -304,8 +356,9 @@ species dumbGuest skills: [moving] {
 				//write " Dumb guest: "+n+" moved: "+newDistance +" to store";
 				write "DumbGuest: "+n+ " total distance traveled: "+movedDistance;
 				//------------------------
-				ask store at_distance 2 //--------- added and edited ask
+			/* ask store at_distance 2 //--------- added and edited ask
 				{
+					
 					if(myself.thirsty){
 						myself.thirsty<-false;
 						self.drinkAvailable <-self.drinkAvailable-1;
@@ -315,7 +368,42 @@ species dumbGuest skills: [moving] {
 						myself.hungry<-false;
 						self.foodAvailable <-self.foodAvailable-1;
 						write ""+myself.n+": went to store: " + myself.storeToGoTo+" to eat, there were: "+foodAvailable+"food left";
-					}	
+					}*/
+					ask store at_distance 2 //--------- added and edited ask
+				{
+					
+					if(myself.thirsty){
+						if(self.drinkAvailable>0){
+						myself.thirsty<-false;
+						self.drinkAvailable <-self.drinkAvailable-1;
+						write ""+myself.n+": went to store: " + myself.storeToGoTo+" to drink, there were: "+drinkAvailable+" drinks left";
+						}
+						else{
+							
+							myself.emptyStoreInfo<-self.location;
+							myself.currentStore<-nil;
+							myself.storeEmpty<-true;
+							
+							write "store was empty, going wandering";
+							write "drink NOT available!";
+						}
+					}
+					else{
+					if(self.foodAvailable>0){
+					// remove food from store
+						self.foodAvailable <- self.foodAvailable-1;
+						myself.hungry<-false;
+						write ""+myself.n+": went to store: " + self.n+" to eat, there were: "+foodAvailable+"food left";
+					}
+					else{
+						myself.emptyStoreInfo<-self.location;
+							myself.currentStore<-nil;
+							myself.storeEmpty<-true;
+						write "store was empty, going wandering";
+						write "food NOT available!";
+						}
+						
+					}		
 				myself.storeToGoTo<-nil;	
 				myself.currentStore<-nil;
 				}	
