@@ -8,10 +8,10 @@
 model festival
 
 global {
-	int guests_init <- 1;
+	int guests_init <- 10;
 	int dumb_guests_init <-2;
 	int info_init<-1;
-	int stores_init<-1;
+	int stores_init<-4;
 	
 	point infoPoint<-{50,50};
 	int chance <- 20;
