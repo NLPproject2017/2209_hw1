@@ -1,6 +1,6 @@
 /**
 * Name: festivalmodel
-* Author: Henrietta
+* Author: Henrietta, Shakhrom
 * Description: 
 * Tags: Tag1, Tag2, TagN
 */
