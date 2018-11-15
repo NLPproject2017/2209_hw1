@@ -17,11 +17,13 @@ global {
 	int chance <- 20;
 	int anotherStoreChance<-2;
 	list<point> storesGlobal;
+	bool callingGuard <-false;
 	bool light<-false; //light is turned on when info center wants the worker to come
 	
 	init {
 		create guest number: guests_init ;
-		//create dumbGuest number: dumb_guests_init;
+		create securityGuard number: 1 ;
+		create dumbGuest number: dumb_guests_init;
 		create store number: stores_init{
 			point p <-{rnd(75),rnd(75)};
 			location<-p;
@@ -44,13 +46,14 @@ species info{
 	list<point> stores;
 	list<point> emptyStores;
 	bool handled<-false;
+	agent badAgentLocation;
+	int badGuestNumber;
 	
-	reflex requestAWorker when: (length(stores)<length(emptyStores))// and !handled{
+	/*reflex requestAWorker when: (length(emptyStores)>0)// and !handled{
 	{
-		write "WORKER ACTIVATED!";
 		light<-true;
 		handled<-true;
-	}
+	}*/
 
 	
  aspect base {
@@ -81,17 +84,12 @@ species securityGuard  skills: [moving]{
 
 	reflex beIdle when: noAction and callingGuard = false and badAgentLocation = nil
 	{
-		//write "went idle: "+n;
 		do wander;
-		
-		if(rnd(chance)=1){
-		}
 	}
 	
 	
 	reflex goToInfoPoint when: callingGuard
 	{
-		
 		
 		do goto target:infoPoint speed: 3.0;
 		
@@ -176,6 +174,12 @@ species guest skills: [moving] {
 	bool storeEmpty<-false;
 	
 	bool hungryOrThirsty<-true;
+	
+	bool beingKilled<-false;
+	
+	reflex die when: beingKilled  {
+		do die ;
+	}
 		
 	reflex beIdle when: thirsty=false
 	{
@@ -217,10 +221,6 @@ species guest skills: [moving] {
 	}*/
 	reflex goToPoint when: ((hungry or thirsty) and currentStore=nil) or askAgain or storeEmpty
 	{
-		if(storeEmpty){
-			write " Store EMPTY agent going to info";
-			
-		}
 		// calc distance traveled
 		x1<-location.x;
 		y1<-location.y;
@@ -240,6 +240,14 @@ species guest skills: [moving] {
 			
 			ask info at_distance 7.1
 			{
+				if (rnd(chance+ 30)=5) //Randomly choosen as BadAgent
+				{
+					write "Guest number: " + myself.n + " is declared as Bad Guest. Security Called.";
+					callingGuard <- true;
+					self.badAgentLocation <- myself;
+					self.badGuestNumber <- myself.n;
+				}
+				
 				if (myself.emptyStoreInfo!=nil){
 					
 					//to ignore duplicates
@@ -266,10 +274,12 @@ species guest skills: [moving] {
 					write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
 					}
 			}
-			else{ 					
+			else{
+				 					
 				write "Food And Drink are finished at stores. Please come back later."; 					
 				myself.thirsty <-false; 					
-				myself.hungry <-false; 					
+				myself.hungry <-false; 	
+				light<-true;				
 				//myself.askAgain<-false; 	
 				}	
 			}
@@ -386,6 +396,12 @@ species dumbGuest skills: [moving] {
 	bool storeEmpty;
 	
 	bool hungryOrThirsty<-true;
+	
+	bool beingKilled<-false;
+	
+	reflex die when: beingKilled  {
+		do die ;
+	}
 		
 	reflex beIdle when: hungry=false and thirsty=false
 	{
@@ -424,6 +440,13 @@ species dumbGuest skills: [moving] {
 			//------------------------
 			ask info at_distance 7.1
 			{
+				if (rnd(chance + 30) =5) //Randomly choosen as BadAgent
+				{
+					write "Guest number: " + myself.n + " is declared as Bad Guest. Security Called.";
+					callingGuard <- true;
+					self.badAgentLocation <- myself;
+					self.badGuestNumber <- myself.n;
+				}
 				if (myself.emptyStoreInfo!=nil){
 						//to ignore duplicates
 					if((!(self.emptyStores contains myself.emptyStoreInfo))){
@@ -442,6 +465,13 @@ species dumbGuest skills: [moving] {
 					myself.currentStore<-self.stores[rand]; 
 					//write "all stores are empty. waiting in Info Desc";
 				}
+				else{ 					
+					write "Food And Drink are finished at stores. Please come back later."; 					
+					myself.thirsty <-false; 					
+					myself.hungry <-false;
+					light<-true; 					
+					//myself.askAgain<-false; 	
+				}	
 				write " asked for store";
 				write "I am going to store at: "+myself.currentStore + " name: "+ myself.n;
 		}
@@ -531,31 +561,36 @@ species festivalWorker skills: [moving]{
 	point storeToGoTo<-nil;
 	bool delivered<-false;
 	
-	reflex calledToInfo when:light{
+	reflex calledToInfo when:light and storeToGoTo = nil{
 		
 		do goto target:infoPoint speed: 3.0;
 	
 		if(location distance_to(infoPoint)<2){
 			ask info at_distance 2
 			{
+				write "WORKER is called by Info!";
 				//get first empty in list and remove it
-				write "empty stores = "+length(self.emptyStores);
-				myself.storeToGoTo<-first(self.emptyStores);
-				remove myself.storeToGoTo from: self.emptyStores;
-				self.handled<-false;
-				
+				if (length(self.emptyStores)>0){
+					write "Number of empty stores = "+length(self.emptyStores);
+					myself.storeToGoTo<-first(self.emptyStores);
+					write "Going to store "+ myself.storeToGoTo + " to Fill Inventory";
+					//remove myself.storeToGoTo from: self.emptyStores;
+					//add myself.storeToGoTo to: self.stores;
+					self.handled<-false;
+					//light<-false;
+				}
 			}
 		}
 	}
-	reflex goToStore when: storeToGoTo!=nil{
+	reflex goToStore when: storeToGoTo!=nil and light{
 		do goto target:storeToGoTo speed: 3.0;
 	
 		if(location distance_to(storeToGoTo)<2){
+			write "Worker is going to Store to fill up supplies";
 			ask store at_distance 2
-			{
-				self.foodAvailable<-20;
-				self.drinkAvailable<-20;
-				
+			{ 
+				self.foodAvailable<-3;
+				self.drinkAvailable<-3;
 			}
 			storeToGoTo<-nil;
 			delivered<-true;
@@ -570,6 +605,7 @@ species festivalWorker skills: [moving]{
 			{
 				add myself.storeToGoTo to:self.stores;
 				remove myself.storeToGoTo from: self.emptyStores;
+				 myself.storeToGoTo<-nil;
 				myself.delivered<-false;
 				light<-false;
 			}}
@@ -596,6 +632,7 @@ experiment main type: gui {
 			species store aspect: base;
 			species dumbGuest aspect: base;
 			species festivalWorker aspect: base;
+			species securityGuard aspect: base;
 		}
 	}
 }
