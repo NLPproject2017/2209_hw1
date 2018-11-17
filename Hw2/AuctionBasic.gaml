@@ -9,21 +9,24 @@ model AuctionBasic
 
 /* Insert your model definition here */
 global {
-	list<list> thingsForSale<-['Phone','TV','Car','Watch'];
+	list<string> thingsForSale<-['Phone','TV','Car','Watch'];
 	
 	int timeInterval <- rnd(1000);
 	int offerTime<-10;
-	bool sold;
+	bool sold<-false;
 	int numberOfParticipants<-2;
 	int nrOfAuctioneersDutch<-1;
 	init {
-		create Auctioneer number: nrOfAuctioneersDutch ;
+		create Auctioneer number: nrOfAuctioneersDutch {
+			n<-'Auctioneer '+rnd(100);
+		}
 		create Participant number: numberOfParticipants {
 			n<-'participant '+rnd(100);
 			//for challenge part
 			loop i over: thingsForSale{
 				//if(rnd(2)=1){
-					add i to: interestedToBuyItems;
+				list willingBuyItem<- [i, 400];
+				add willingBuyItem to: interestedToBuyItems;
 				//}
 			}
 			//for challenge
@@ -35,20 +38,27 @@ global {
 		}
 }
 species Auctioneer skills: [fipa] {
-	int randNr<-0; // set when created
+	// set when created
 	int numberOfPplResponded<-0;
-	string n<-'Auctioneer '+randNr;
+	string n;
 	
 	list<Participant> agreedBuyers;
-	list<list> startAndMinValues<-[['Phone', 400,200],['TV',2000,1000],['Car',5000,4000],['Watch',1000,600]];
+	// format: item, price, minPrice
+	list<list> sellingItems<-[['Phone', 400,200],['TV',2000,1000],['Car',5000,4000],['Watch',1000,600]];
 	
 	bool informed<-false;
 	bool informingInProgress<-false;
 	bool auctionActive<-false;
 	bool restart<-false;
 	
+	list auctionItem;
+	string activeProposedItem;
+	int activeProposedPrice;
+	int minValueForItem;
+	
+	
 	// inform first participant of starting auction, see if it wants to join
-	reflex inform_of_auction when: !auctionActive and !empty(thingsForSale) and !informingInProgress{
+	reflex inform_of_auction when: !auctionActive and !empty(sellingItems) and !informingInProgress{
 		write 'Auctioneer: inform_of_auction';
 		Participant p<-Participant at 0;
 	
@@ -68,7 +78,7 @@ species Auctioneer skills: [fipa] {
 			}
 			write ''+ a.sender+ ' added to list of interested buyers: '; //+a.contents[1];
 		}
-		if(numberOfPplResponded=nrOfParticipants){
+		if(numberOfPplResponded=numberOfParticipants){
 			write 'numberOfPplResponded: '+numberOfPplResponded;
 			
 			informingInProgress<-false;
@@ -78,14 +88,44 @@ species Auctioneer skills: [fipa] {
 	}
 	// start a conversation with all interested participants
 	reflex start_conversation when: informed{
-		string auctionItem;
-		if(length(thingsForSale)!=0){
-			auctionItem<-first(thingsForSale);
+		
+		if(length(sellingItems)!=0){
+			auctionItem<-first(sellingItems);
 		}
-		do start_conversation with: [ to :: list( agreedBuyers), protocol :: 'fipa-contract-net', performative :: 'cfp', contents :: ["Selling: ", auctionItem] ];
+		activeProposedItem <- string(auctionItem[0]);		
+		activeProposedPrice <- auctionItem[1];
+		minValueForItem <-auctionItem[2]; //Maybe always 50% discount is the min Value?
+		 
+		do start_conversation with: [ to :: list( agreedBuyers), protocol :: 'fipa-contract-net', performative :: 'cfp', 
+			contents :: ["Selling:", activeProposedItem, " at Price", activeProposedPrice]
+		];
+		
 		write "Selling: "+ auctionItem;
 		informed<-false;
 	}
+	
+	reflex receive_propose_messages when: !empty(proposes) and !sold {
+		//write name + ' receives propose messages';
+		
+		loop p over: proposes {
+			if (sellingItems contains auctionItem)
+			{
+				write name + ' receives a propose message from ' + agent(p.sender).name + ' with content ' + p.contents;
+				int participatPrice <- p.contents[1];
+				if ( participatPrice >= activeProposedPrice) {
+					write '\t' + name + ' sends a accept_proposal message to ' + p.sender;
+					do accept_proposal with: [ message :: p, contents :: ['The ' + activeProposedItem + 'is yours.']];
+					remove auctionItem from: sellingItems;
+					write "auction item:" + auctionItem + " is sold. " + "Things to sell:" + sellingItems;
+					
+				} else {
+					write '\t' + name + ' sends a reject_proposal message to ' + p.sender;
+					do reject_proposal with: [ message :: p, contents :: ['Too low price! Not interested in your proposal for ' + activeProposedItem] ];
+				}
+			}
+		}
+	}
+	
 	// read received agrees
 	reflex read_agree_message when: !(empty(agrees)){
 		write 'Auctioneer: read_agree_message';
@@ -105,6 +145,9 @@ species Auctioneer skills: [fipa] {
 	species Participant skills: [fipa]{
 		string n;
 		list<list> interestedToBuyItems;
+		string proposedItem;
+		int proposedPrice;
+		int willingPrice;
 		
 		reflex respond_to_inform when: !empty(informs){
 			write 'Participant: respond_to_inform';
@@ -116,10 +159,33 @@ species Auctioneer skills: [fipa] {
 			// testing
 			//write 'I am interested in: ' + interestedToBuyItems;
 		}
-		reflex message_proposed_by_auctioneer when: !empty(cfps){
-			message proposalFromAuctioneer<- cfps at 0;
-					
+		reflex respond_to_proposal when: !empty(cfps){
+			message proposalFromAuctioneer<- cfps at 0; 
+		
+			proposedItem <- proposalFromAuctioneer.contents[1];
+			proposedPrice <- proposalFromAuctioneer.contents[3];
+			
+			loop interestItem over: interestedToBuyItems {
+				if (interestItem[0] = proposedItem)
+				{
+					willingPrice <- interestItem[1];
+				}
+			}
+				
+			if (willingPrice<=proposedPrice){
+				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I agree to buy it for Price:', proposedPrice]];
+			} 
+			else{
+				do refuse with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy it. Willing To buy:', willingPrice]];
+			}
 		}
+		
+		reflex receive_accept_proposals when: !empty(accept_proposals) and !sold {
+		write name + " said: Hurray, I bought it! ";
+		sold <-true;
+	} 
+	
+			
 		
 	/*
 			if( auctionItem='selling books'){
