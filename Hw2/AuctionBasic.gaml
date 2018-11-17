@@ -25,7 +25,7 @@ global {
 			//for challenge part
 			loop i over: thingsForSale{
 				//if(rnd(2)=1){
-				list willingBuyItem<- [i, 400];
+				list willingBuyItem<- [i, 300];
 				add willingBuyItem to: interestedToBuyItems;
 				//}
 			}
@@ -40,13 +40,14 @@ global {
 species Auctioneer skills: [fipa] {
 	// set when created
 	int numberOfPplResponded<-0;
+	int numberOfPeopleProposed<-0;
 	string n;
 	
 	list<Participant> agreedBuyers;
 	// format: item, price, minPrice
 	list<list> sellingItems<-[['Phone', 400,200],['TV',2000,1000],['Car',5000,4000],['Watch',1000,600]];
 	
-	bool informed<-false;
+	bool ToBeInformed<-false;
 	bool informingInProgress<-false;
 	bool auctionActive<-false;
 	bool restart<-false;
@@ -55,6 +56,8 @@ species Auctioneer skills: [fipa] {
 	string activeProposedItem;
 	int activeProposedPrice;
 	int minValueForItem;
+	int newProposedPrice<-0;
+	int priceDropRate <- 20;
 	
 	
 	// inform first participant of starting auction, see if it wants to join
@@ -82,29 +85,32 @@ species Auctioneer skills: [fipa] {
 			write 'numberOfPplResponded: '+numberOfPplResponded;
 			
 			informingInProgress<-false;
-			informed<-true;
+			ToBeInformed<-true;
 			auctionActive<-true;
 		}
 	}
 	// start a conversation with all interested participants
-	reflex start_conversation when: informed{
+	reflex start_conversation when: ToBeInformed{
 		
-		if(length(sellingItems)!=0){
+		if(length(sellingItems)!=0 and length(auctionItem) = 0){
 			auctionItem<-first(sellingItems);
 		}
-		activeProposedItem <- string(auctionItem[0]);		
+		activeProposedItem <- auctionItem[0];
 		activeProposedPrice <- auctionItem[1];
+		if(newProposedPrice != 0 and newProposedPrice >= minValueForItem){
+			activeProposedPrice <- newProposedPrice;
+		}		
 		minValueForItem <-auctionItem[2]; //Maybe always 50% discount is the min Value?
 		 
 		do start_conversation with: [ to :: list( agreedBuyers), protocol :: 'fipa-contract-net', performative :: 'cfp', 
 			contents :: ["Selling:", activeProposedItem, " at Price", activeProposedPrice]
 		];
 		
-		write "Selling: "+ auctionItem;
-		informed<-false;
+		write name + "Selling: " + activeProposedItem + " at Price" + activeProposedPrice;
+		ToBeInformed<-false;
 	}
 	
-	reflex receive_propose_messages when: !empty(proposes) and !sold {
+	reflex receive_propose_messages when: !empty(proposes) and !sold and !ToBeInformed{
 		//write name + ' receives propose messages';
 		
 		loop p over: proposes {
@@ -117,13 +123,29 @@ species Auctioneer skills: [fipa] {
 					do accept_proposal with: [ message :: p, contents :: ['The ' + activeProposedItem + 'is yours.']];
 					remove auctionItem from: sellingItems;
 					write "auction item:" + auctionItem + " is sold. " + "Things to sell:" + sellingItems;
+					auctionItem<-nil;
 					
 				} else {
+					numberOfPeopleProposed <-numberOfPeopleProposed + 1;
 					write '\t' + name + ' sends a reject_proposal message to ' + p.sender;
 					do reject_proposal with: [ message :: p, contents :: ['Too low price! Not interested in your proposal for ' + activeProposedItem] ];
+				
 				}
 			}
 		}
+		//write "no of people proposed" + numberOfPeopleProposed;
+		//write "no of partitipants" + agreedBuyers;
+		
+		
+		//If everyone proposed, and not accepted, create new cfp with lower price
+		if (numberOfPeopleProposed = length(agreedBuyers) and sellingItems contains auctionItem)
+			{
+				numberOfPeopleProposed <-0;
+				newProposedPrice <- activeProposedPrice - priceDropRate;
+				ToBeInformed<-true;		
+				write name + "says: Nobody bought: " + activeProposedItem + " for Price: " + activeProposedPrice + ". New price announced:" + 	newProposedPrice;
+			}
+		
 	}
 	
 	// read received agrees
@@ -172,11 +194,13 @@ species Auctioneer skills: [fipa] {
 				}
 			}
 				
-			if (willingPrice<=proposedPrice){
+			if (willingPrice>=proposedPrice){
 				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I agree to buy it for Price:', proposedPrice]];
 			} 
 			else{
-				do refuse with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy it. Willing To buy:', willingPrice]];
+				//TODO: we need to use Refuse, I gues. Then we have to handle refuse messages in Auctioneer as well.
+				//do refuse with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy it. Willing To buy:', willingPrice]];
+				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy it. Willing To buy:', willingPrice]];
 			}
 		}
 		
