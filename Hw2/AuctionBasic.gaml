@@ -14,10 +14,12 @@ global {
 	int timeInterval <- rnd(1000);
 	int offerTime<-10;
 	bool sold;
-	int nrOfParticipants<-2;
+	int numberOfParticipants<-2;
+	int nrOfAuctioneersDutch<-1;
 	init {
-		create Auctioneer number: 1 ;
-		create Participant number: nrOfParticipants {
+		create Auctioneer number: nrOfAuctioneersDutch ;
+		create Participant number: numberOfParticipants {
+			n<-'participant '+rnd(100);
 			//for challenge part
 			loop i over: thingsForSale{
 				//if(rnd(2)=1){
@@ -33,35 +35,27 @@ global {
 		}
 }
 species Auctioneer skills: [fipa] {
-	
-	int sellPrice <-0;
-	list<Participant> agreedBuyers;
+	int randNr<-0; // set when created
 	int numberOfPplResponded<-0;
+	string n<-'Auctioneer '+randNr;
+	
+	list<Participant> agreedBuyers;
 	list<list> startAndMinValues<-[['Phone', 400,200],['TV',2000,1000],['Car',5000,4000],['Watch',1000,600]];
 	
 	bool informed<-false;
 	bool informingInProgress<-false;
 	bool auctionActive<-false;
-	
-	//message query <- queries at 0;
-	
-	int randNr<-0; // set when created
-	string n<-'Auctioneer '+randNr;
 	bool restart<-false;
 	
 	// inform first participant of starting auction, see if it wants to join
 	reflex inform_of_auction when: !auctionActive and !empty(thingsForSale) and !informingInProgress{
 		write 'Auctioneer: inform_of_auction';
-		
 		Participant p<-Participant at 0;
-		//write 'p.peers:' +p.peers;
-		//write 'p:' +p;
-		
+	
 		do start_conversation ( to : [p], protocol : 'fipa-inform', performative : 'inform', contents : ['Auction open at: '+n+' - wanna buy something?'] );
 		loop i over: p.peers {
-			
-		do start_conversation ( to : [i], protocol : 'fipa-inform', performative : 'inform', contents : ['Auction open at: '+n+' - wanna buy something?'] );
-		informingInProgress<-true;
+			do start_conversation ( to : [i], protocol : 'fipa-inform', performative : 'inform', contents : ['Auction open at: '+n+' - wanna buy something?'] );
+			informingInProgress<-true;
 		}
 	}
 	reflex read_inform_message when: !(empty(informs)) and informingInProgress{
@@ -76,9 +70,9 @@ species Auctioneer skills: [fipa] {
 		}
 		if(numberOfPplResponded=nrOfParticipants){
 			write 'numberOfPplResponded: '+numberOfPplResponded;
+			
 			informingInProgress<-false;
 			informed<-true;
-			
 			auctionActive<-true;
 		}
 	}
@@ -87,9 +81,7 @@ species Auctioneer skills: [fipa] {
 		string auctionItem;
 		if(length(thingsForSale)!=0){
 			auctionItem<-first(thingsForSale);
-			//write 'auctionItem: ' + first(thingsForSale) + ' auctionItem' +auctionItem;
 		}
-		
 		do start_conversation with: [ to :: list( agreedBuyers), protocol :: 'fipa-contract-net', performative :: 'cfp', contents :: ["Selling: ", auctionItem] ];
 		write "Selling: "+ auctionItem;
 		informed<-false;
@@ -106,65 +98,12 @@ species Auctioneer skills: [fipa] {
 			write ''+ a.sender+ ' replied with failure: '; //+a.contents[1];
 		}
 	}
-	
-	
-	/*reflex start_conversation when: time=10 and restart{
-	restart<-false;
-	  Participant p<-Participant at 0;
-		do start_conversation (to :: [p], protocol :: 'fipa-request',performative::'request',contents::['selling books', 11]);
-	}*/
-	/*reflex anounce_Auction when: auctionActive{
-		//add 'hello' to:queries;
-		do inform with: [ message :: query, contents :: [ 'Auction now active at ' + n ] ];
-	}
-	reflex no_response when: empty(agrees) or empty(failures){
-		
-		restart<-true;
-	}
-	reflex read_agree_message when: !(empty(agrees)) {
-		
-		loop a over: agrees{
-			write ''+ a.sender+ ' buys the books at: ' +a.contents[1];
-			
-			
-			//restart<-true;
-		}
-
-	}
-	// TODO fix failures
-	reflex read_failiure_message when: !(empty(failures)){
-		
-		loop f over: failures{
-			write 'failure message with content: '+(string(f.contents));
-			
-		}
-}	*/
-	/*reflex send_request when: (time=rnd(3)){
-		// first participant
-		Participant p<-Participant at 0;
-		write 'Anouncing auction! ' ;
-		
-		//start a conversation with participant
-		do start_conversation (to :: [p], protocol :: 'fipa-request',performative::'request',contents::['Auction anouncement']);
-	}
-	reflex read_agree_message when: !(empty(agrees)) {
-		loop a over: agrees{
-			write 'agree message with content' + string(a.contents);
-			
-		}
-	}
-	reflex read_failiure_message when: !(empty(failures)){
-		loop f over: failures{
-			write 'failure message with content: '+(string(f.contents));
-			
-		}
-	}*/
 	aspect base {
 		draw circle(2) color: #brown ;
 	}
 	}
 	species Participant skills: [fipa]{
-		string n<-'participant '+rnd(100);
+		string n;
 		list<list> interestedToBuyItems;
 		
 		reflex respond_to_inform when: !empty(informs){
@@ -176,26 +115,14 @@ species Auctioneer skills: [fipa] {
 			do inform with: [message:: informFromAuctioneer, contents:: ['I accept']];
 			// testing
 			//write 'I am interested in: ' + interestedToBuyItems;
-			
 		}
 		reflex message_proposed_by_auctioneer when: !empty(cfps){
 			message proposalFromAuctioneer<- cfps at 0;
 					
 		}
 		
-		/*reflex read_requests when: (!empty(requests)){
-			write 'inform message with content: ';
-		
-			// read first request
-			message requestFromAuctioneer <-(requests at 0);
-			write requestFromAuctioneer.contents;
-			string auctionItem<-requestFromAuctioneer.contents[0];
-			int price <- requestFromAuctioneer.contents[1];
-			int desiredPrice<-100;
-			
-			write 'auction item and price: '+auctionItem +' ' + price;
+	/*
 			if( auctionItem='selling books'){
-				
 				// TODO fix failures
 				if(price>=desiredPrice){
 					do failure (message: requestFromAuctioneer, contents: ['Too expencive, I cant afford it']);
@@ -203,14 +130,11 @@ species Auctioneer skills: [fipa] {
 				else{
 					do agree with: [message:: requestFromAuctioneer, contents:: ['I agree, I want to buy the book!', price]];
 				}
-				
-				
+
 				//do goto target:Auctioneer speed: 3.0;
 				//send partisipant to auction
 				//do goto...
 			}
-			
-			
 			//write ' inform the initiator of the failure';
 			//do failure (message: requestFromInitiator, contents: ['The bed is broken']);
 		}*/
@@ -219,10 +143,9 @@ species Auctioneer skills: [fipa] {
 	}
 	}
 	
-
 experiment main type: gui {
-	//parameter "Initial auctioneer " var: numberOfAuc min: 1 max: 1000 category: "Guests" ;
-	//parameter "Auction new offer time" var: timeInterval min: 1 max: 100 category: "time";
+	parameter "Number of auctioneers(Dutch)" var: nrOfAuctioneersDutch min: 1 max: 10 category: "Auctioneers" ;
+	parameter "Number of participants" var: numberOfParticipants min: 1 max: 100 category: "Participants" ;
 	output {
 		display main_display {
 			species Auctioneer aspect: base ;
