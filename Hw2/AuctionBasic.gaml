@@ -37,27 +37,38 @@ global {
 		}
 		}
 }
-species Auctioneer skills: [fipa] {
+species Auctioneer skills: [fipa, moving] {
 	// set when created
 	int numberOfPplResponded<-0;
 	int numberOfPeopleProposed<-0;
+	int numberOfPeopleRejected<-0;
+	
 	string n;
 	
 	list<Participant> agreedBuyers;
 	// format: item, price, minPrice
-	list<list> sellingItems<-[['Phone', 400,200],['TV',2000,1000],['Car',5000,4000],['Watch',1000,600]];
+	list<list> sellingItems<-[['Phone', 400,200],['TV',600,400],['Car',500,200],['Watch',700,500]];
 	
 	bool ToBeInformed<-false;
 	bool informingInProgress<-false;
 	bool auctionActive<-false;
 	bool restart<-false;
+	bool auctionClosed<-false;
+	
 	
 	list auctionItem;
 	string activeProposedItem;
 	int activeProposedPrice;
 	int minValueForItem;
 	int newProposedPrice<-0;
-	int priceDropRate <- 20;
+	int priceDropRate <- 50;
+	
+	Participant winner;
+	
+	reflex beIdle when: auctionClosed
+	{
+		do wander;
+	}
 	
 	
 	// inform first participant of starting auction, see if it wants to join
@@ -90,72 +101,105 @@ species Auctioneer skills: [fipa] {
 		}
 	}
 	// start a conversation with all interested participants
-	reflex start_conversation when: ToBeInformed{
+	reflex start_conversation when: ToBeInformed and !auctionClosed{
 		
-		write "length(auctionItem)=" + length(auctionItem);
-		if(length(sellingItems)!=0 and length(auctionItem) = 0){
-			auctionItem<-first(sellingItems);
-			write "new actionItem:" + auctionItem;
-		}
+		if(length(sellingItems)!=0){
 		
-		minValueForItem <-auctionItem[2]; 
-		activeProposedItem <- auctionItem[0];
-		activeProposedPrice <- auctionItem[1];
-		if(newProposedPrice != 0 and newProposedPrice >= minValueForItem){
+			if(length(sellingItems)!=0 and length(auctionItem) = 0){
+				auctionItem<-first(sellingItems);
+				write "new actionItem:" + auctionItem;
+			}
+		
+			minValueForItem <-auctionItem[2]; 
+			activeProposedItem <- auctionItem[0];
+			activeProposedPrice <- auctionItem[1];
+			if(newProposedPrice != 0 and newProposedPrice >= minValueForItem){
 			activeProposedPrice <- newProposedPrice;
-		}		
+			}		
 		//Maybe always 50% discount is the min Value?
 		 
-		do start_conversation with: [ to :: list( agreedBuyers), protocol :: 'fipa-contract-net', performative :: 'cfp', 
-			contents :: ["Selling:", activeProposedItem, " at Price", activeProposedPrice]
-		];
+			do start_conversation with: [ to :: list( agreedBuyers), protocol :: 'fipa-contract-net', performative :: 'cfp', 
+				contents :: ["Selling:", activeProposedItem, " at Price", activeProposedPrice]];
 		
-		write name + " Selling: " + activeProposedItem + " at Price: " + activeProposedPrice;
-		ToBeInformed<-false;
+			write name + " Selling: " + activeProposedItem + " at Price: " + activeProposedPrice;
+			ToBeInformed<-false;
+		} else {
+			write "Auction Closed! All Items Sold! Thanks for participation.";
+			auctionClosed<-true;
+		}
 	}
 	
 	reflex receive_propose_messages when: !empty(proposes) and !sold and !ToBeInformed{
-		//write name + ' receives propose messages';
 		
 		loop p over: proposes {
 			if (sellingItems contains auctionItem)
 			{
+				numberOfPeopleProposed <-numberOfPeopleProposed + 1;
 				write agent(p.sender).name + ' says:  ' + p.contents;
 				int participatPrice <- p.contents[1];
 				if ( participatPrice >= activeProposedPrice) {
 					write '\t' + name + ' sends a accept_proposal message to ' + p.sender;
 					do accept_proposal with: [ message :: p, contents :: ['The ' + activeProposedItem + 'is yours.']];
+					winner <- p.sender;
+				} else {
+					numberOfPeopleRejected<-numberOfPeopleRejected + 1;
+					write '\t' + name + ' rejects proposal from ' + p.sender;
+					do reject_proposal with: [ message :: p, contents :: ['Too low price! Not interested in your proposal for ' + activeProposedItem] ];
+				
+				}
+			}
+				
+		}
+		
+		/*if (winnerProposal != nil and numberOfPeopleProposed = length(agreedBuyers)) {
+					write '\t' + name + ' sends a accept_proposal message to ' + winnerProposal.sender;
+					do accept_proposal with: [ message :: winnerProposal, contents :: ['The ' + activeProposedItem + 'is yours.']];
 					remove auctionItem from: sellingItems;
 					write "Auction item " + auctionItem + " is sold. ";
 					sold <-true;
 					auctionItem<-nil;
 					ToBeInformed<-true;
 					newProposedPrice<-0;
-					
-				} else {
-					numberOfPeopleProposed <-numberOfPeopleProposed + 1;
-					write '\t' + name + ' rejects proposal from ' + p.sender;
-					do reject_proposal with: [ message :: p, contents :: ['Too low price! Not interested in your proposal for ' + activeProposedItem] ];
+				} 				
+		*/
 				
+				//If everyone responded, check if we have a winner, then end the auction for a item, else propose new price for current Item
+				if (numberOfPeopleProposed = length(agreedBuyers) and sellingItems contains auctionItem)
+				{
+					write "Number of People proposed: " + numberOfPeopleProposed;
+					write "Number of people rejected: " + numberOfPeopleRejected;
+					if (numberOfPeopleRejected = numberOfPeopleProposed ){
+						write "Everyone Rejected!";
+						//numberOfPeopleProposed <-0;
+						//numberOfPeopleRejected <-0;
+						newProposedPrice <- activeProposedPrice - priceDropRate;
+						if (newProposedPrice <= minValueForItem){
+							remove auctionItem from: sellingItems;
+							write "Price was below minimum value. Auction is terminated for Item" + activeProposedItem;
+							sold <-true;
+							auctionItem<-nil;
+							ToBeInformed<-true;
+							newProposedPrice<-0;
+							winner <- nil;
+						}else{
+							ToBeInformed<-true;		
+							write name + " says: New Round! Selling " + activeProposedItem + " for price: " + 	newProposedPrice;
+						}
+					}
+					
+					if (winner != nil){
+						remove auctionItem from: sellingItems;
+						write "Auction item " + auctionItem + " is sold. ";
+						sold <-true;
+						auctionItem<-nil;
+						ToBeInformed<-true;
+						newProposedPrice<-0;
+						winner <- nil;
+					}
+					
+					numberOfPeopleProposed <-0;
+					numberOfPeopleRejected <-0;
 				}
-			}
-		}
-		//write "no of people proposed" + numberOfPeopleProposed;
-		//write "no of partitipants" + agreedBuyers;
-		
-		//If everyone proposed, and not accepted, create new cfp with lower price
-		write "sellingItems contains auctionItem: "  + (sellingItems contains auctionItem);
-		write "(numberOfPeopleProposed: " + numberOfPeopleProposed + " agreedBuyers:" + length(agreedBuyers);
-		
-		if (numberOfPeopleProposed = length(agreedBuyers) and sellingItems contains auctionItem)
-			{
-				write "Everyone Rejected!";
-				numberOfPeopleProposed <-0;
-				newProposedPrice <- activeProposedPrice - priceDropRate;
-				ToBeInformed<-true;		
-				write name + " says: New Round! Selling " + activeProposedItem + " for price: " + 	newProposedPrice;
-			}
-		
 	}
 	
 	// read received agrees
