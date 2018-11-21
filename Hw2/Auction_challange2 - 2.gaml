@@ -63,6 +63,7 @@ species Auctioneer skills: [fipa, moving] {
 	list<message> sealedBidProposals;
 	message highestSealedBidOfferAndParticipant;
 	int currentHighestBid<-0;
+	int previousHighestBid<-nil;
 	
 	
 	reflex beIdle when: auctionClosed
@@ -131,6 +132,7 @@ species Auctioneer skills: [fipa, moving] {
 		loop p over: proposes {
 			if (sellingItems contains auctionItem)
 			{
+				
 				//save all bids from participants to later select highest
 				//add p to: sealedBidProposals;
 				
@@ -139,20 +141,37 @@ species Auctioneer skills: [fipa, moving] {
 				
 				//if no one placed a bid yet
 				int newOffer <- p.contents[1];
+				if(previousHighestBid=0){
+					previousHighestBid<-newOffer;
+					/*if(newOffer>previousHighestBid){
+						
+					}*/
+				}
+				
+				//write 'previousHighestBid before checking new offer: '+previousHighestBid;
 				/*if(highestSealedBidOfferAndParticipant=nil){
 					highestSealedBidOfferAndParticipant<-p;
 					currentHighestBid<-(highestSealedBidOfferAndParticipant.contents[1]);
 				}*/
+				
 				currentHighestBid<-(highestSealedBidOfferAndParticipant.contents[1]);
-
-				// if latest offer is highest yet, save it
+				
+				// if latest offer is highest yet, save it, and save second highest
 				if ( newOffer > currentHighestBid) {
+					previousHighestBid<-currentHighestBid;
+					currentHighestBid<-newOffer;
 				//DEBUG	//write '\t previous highest bid was: '+ highestSealedBidOfferAndParticipant.sender +' with bid: '+ currentHighestBid + ' new bid: '+ p.sender + ' made higher sealed bid offer, saving ' + newOffer;
 					highestSealedBidOfferAndParticipant<-p;
 				}
 				else{
+					if(newOffer>previousHighestBid){
+						previousHighestBid<-newOffer;
+					}
 				//DEBUG	//write 'previous bid was higher, keeping old';
+				
+				write '2nd higest bid: ' + previousHighestBid;
 				} 
+					//write 'previousHighestBid after checking new offer: '+previousHighestBid;
 			}
 				//write 'numberOfPeopleProposed '+ numberOfPeopleProposed;
 				//write 'length(agreedBuyers) '+ length(agreedBuyers);
@@ -160,14 +179,14 @@ species Auctioneer skills: [fipa, moving] {
 				//If everyone responded, we have a winner
 				if (numberOfPeopleProposed = length(agreedBuyers) and sellingItems contains auctionItem)
 				{
-					write 'hello';
+					//write 'hello';
 					write "Number of People proposed: " + numberOfPeopleProposed;
-					write name+ ' Winner: '+highestSealedBidOfferAndParticipant.sender+' '  + highestSealedBidOfferAndParticipant.contents[1];
+					write name+': '+highestSealedBidOfferAndParticipant.sender+ ' WINS! with highest bid of: '  + highestSealedBidOfferAndParticipant.contents[1];
 					//remove 
 					remove auctionItem from: sellingItems;
 					
 					//send agree to participant
-					do accept_proposal with: (message: highestSealedBidOfferAndParticipant, contents: ['You win']);
+					do accept_proposal with: (message: highestSealedBidOfferAndParticipant, contents: ['You win, cost: ',previousHighestBid]);
 					
 					// suggest next item in previous reflex
 					auctionItem<-nil;
@@ -176,6 +195,7 @@ species Auctioneer skills: [fipa, moving] {
 					numberOfPeopleProposed<-0;
 					currentHighestBid<-0;
 					winner<-nil;
+					previousHighestBid<-nil;
 					//proposalFromWinningParticipant<-nil;	
 					//winner<-highestSealedBidOfferAndParticipant.sender;
 					sold<-true;
@@ -225,7 +245,8 @@ species Auctioneer skills: [fipa, moving] {
 			}*/
 			}
 		reflex receive_accept_proposals when: !empty(accept_proposals) and sold{
-		write name + " said: Hurray, I bought it! ";
+			message m <- accept_proposals at 0;
+		write name + " said: Hurray, I bought it! For 2nd highest offer price: "+m.contents[1];
 		sold<-false;
 	}
 		aspect base {
@@ -234,7 +255,7 @@ species Auctioneer skills: [fipa, moving] {
 	}
 	
 experiment main type: gui {
-	parameter "Number of auctioneers(Dutch)" var: nrOfAuctioneersSealed min: 1 max: 10 category: "Auctioneers" ;
+	//parameter "Number of auctioneers Vickery" var: nrOfAuctioneersVickery min: 1 max: 10 category: "Auctioneers" ;
 	parameter "Number of participants" var: numberOfParticipants min: 1 max: 100 category: "Participants" ;
 	output {
 		display main_display {
