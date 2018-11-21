@@ -46,7 +46,7 @@ global {
 				
 			loop i over: thingsForSale{
 				if (interestedCategories contains i[1]){
-					list willingBuyItem<- [i[0], 300];
+					list willingBuyItem<- [i[0], 200 + rnd(300)];
 					add willingBuyItem to: interestedToBuyItems;
 				}
 			}
@@ -163,7 +163,7 @@ species Auctioneer skills: [fipa, moving] {
 			
 			ToBeInformed<-false;
 		} else {
-			write "Auction Closed! All Items Sold! Thanks for participation.";
+			write name + " says: Auction Closed! All Items Sold! Thanks for participation.";
 			auctionClosed<-true;
 		}
 	}
@@ -283,12 +283,12 @@ species Auctioneer skills: [fipa, moving] {
 			}
 				
 			if (willingPrice>=proposedPrice){
-				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I agree to buy it for Price:', proposedPrice]];
+				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I agree to buy ' + proposedItem + ' from ' +proposalFromAuctioneer.sender + '  for Price:', proposedPrice]];
 			} 
 			else{
 				//TODO: we need to use Refuse, I gues. Then we have to handle refuse messages in Auctioneer as well.
 				//do refuse with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy it. Willing To buy:', willingPrice]];
-				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy it. Willing To buy:', willingPrice]];
+				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy ' + proposedItem + ' from ' +proposalFromAuctioneer.sender + '. Willing To buy:', willingPrice]];
 			}
 		}
 		
