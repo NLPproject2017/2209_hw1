@@ -37,15 +37,28 @@ global {
       	    	
 		}
 	}
+
+/*
+ * 1. do some "fuction"/reflex to update pred/successor
+ * 2. Checks if neghbour is collisionFree, then moves it
+ * 2. else, asks predecessor to move and etc.
+ * */
 	
 species Queen skills: [fipa, moving] {
 	list<list> neighbour_position;
 	bool askedToMove <- false;
 	bool collision <-false;
+	int myX <- location.x; //This should be grid value	
+	int myY <- location.y;
 	
 	reflex move_to_new_position when: askedToMove {
 		write name + ":I was aked to check my collision status and move my position";
-	}
+		if(neighbour_position[0]=myX){ // or neighbour_positionY=myY){ 			
+		//ask predecessor {
+		//}
+	}}
+	
+	reflex find_predecessor when: true{ 		 	} 	
 	
 	aspect base {
 		draw triangle(2) color: #blue ;
