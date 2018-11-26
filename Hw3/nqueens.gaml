@@ -1,12 +1,13 @@
 model Grid
 
 global {
-	int number_of_queens <- 4;
+	int number_of_queens <- 8;
 	int grid_cell_counter <-1; 
 	list queens_positions;
 	//list<agent, collisionStatus> successMatrix;
 	bool globalPositionCheck<-false;
 	bool position_set <- false;
+	int x_axis <- 0;
 	init {    
 		matrix data <- matrix([[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],
 							   [1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1]]);
@@ -20,8 +21,19 @@ global {
       	create Queen number: number_of_queens {
       		//location <- data[1 + rnd(1,6) ,1 + rnd(1,6)];
       		position_set <- false;
-      		point temp_location<-(cell grid_at {rnd(0,7),rnd(0,7)}).location;
+      		point temp_location;
+      		cell call_location;
       		
+      		//loop y over: number_of_queens-1 {
+      			call_location <-cell grid_at {x_axis, 0};
+      			temp_location<-(call_location).location;
+      			write "Queen:" + name + " is placed at " +  "0:" + x_axis; 
+      			x_axis <- x_axis + 1; 
+      			
+      		//}
+      		
+      		//point temp_location<-(cell grid_at {rnd(0,7),rnd(0,7)}).location;
+      		/* 
       		loop while: !(position_set) {
       			if (queens_positions contains [temp_location, name]){
       			temp_location<-(cell grid_at {rnd(0,7),rnd(0,7)}).location;
@@ -29,9 +41,10 @@ global {
       				position_set <-true;
       			}      			
       		}
-      		
-      		add [temp_location, name] to: queens_positions;
+      		*/
+      		add [call_location, name] to: queens_positions;
       		location <-temp_location;
+      		position_set <-true;
       		//queens_positions
       	}
       	    	
@@ -87,14 +100,24 @@ grid cell width: 8 height: 8 neighbors: 4 {
     	
     reflex check_for_positions when: globalPositionCheck {
     	write "globalPositionCheck is called";
-    	list getQueenForPositionCheck <- queens_positions[rnd(0, length(queens_positions)-1)];
+    	list getQueenForPositionCheck <- queens_positions[queens_positions[0]];
     	string selectedQueen <- getQueenForPositionCheck[1];
     	
-    	write "Random selected queen list:" + getQueenForPositionCheck + " \n Queen element:"  + selectedQueen;
+    	write "Selected queen list:" + getQueenForPositionCheck + " \n Queen element:"  + selectedQueen;
+    	
+    	// Checking Queen global position
+    	/*
+    	 	*   q (x, y)
+    	 	*  loop where x=other queenx 
+    	 	* loop where x=other queeny - this is assumption, always false
+    	 	* 
+    	 	*  	 
+    	 	* */
+    	
     	
     	ask Queen {
     		if (self.name = selectedQueen){
-    			write "Grid Asking " + self.name + " to check or move its position";
+    			//write "Grid Asking " + self.name + " to check or move its position";
     			self.askedToMove <-true;
     		}
     	}
