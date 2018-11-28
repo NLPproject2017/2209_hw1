@@ -10,7 +10,6 @@ model stages
 /* Insert your model definition here */
 
 global {
-	
 	bool init<-false;
 	
 	int numberOfGuests<-2;
@@ -25,7 +24,6 @@ global {
 	list<point> stages;
 	
 	init {
-		create Leader number: 1;
 		create Stage number: nrOfStages {
 			location<-{rnd(1,100),rnd(1,100)};
 			//add location to: stage_locations;
@@ -64,118 +62,13 @@ global {
 			pyroTechInterest<-rnd(1,3);
 			reputationInterest<-rnd(1,3);
 			XFactor<- rnd(1,3);
-			
-			//CHALLENGE
-			crowdMassPref<-1;//rnd(1,5);
-			
-			//CREATIVE
-			mood<-rnd(1,3);
+			mood<-rnd(1,2);
 			myPreference<-soundSystemVersionPreference*lightSystemVersionPreference*bandPreference*pyroTechInterest*reputationInterest*rnd(1,3);
 			
 		}	
 		}
 		}
-//CHALLENGE
-species Leader skills:[moving]{
-	// Guest, whereItIsGoing, crowdPref
-	list<list> guestsAndWhereTheyAreGoing;
-	// stage, numberGoingThere
-	list<list> howManyAreGoingToEachStage;
-	
-	reflex directPeopleToRightPlace when:!empty(guestsAndWhereTheyAreGoing){
-
-		do wander speed: 4 amplitude: 4;
-		
-		//write name+  ' outside loop----------- length of guestlist: ' +length(guestsAndWhereTheyAreGoing);
-		loop guestInfo over:guestsAndWhereTheyAreGoing{
-			write 'loop guestInfo over:guestsAndWhereTheyAreGoing{';
-			// info about the guests intentions
-			Guest currentGuest<-guestInfo[0];
-			Stage whereItIsGoing <-guestInfo[1];
-			write ' guestInfo: '+guestInfo[1]; //NULL
-			int crowdPref<-guestInfo[2];
-			// add first entry
-			if(length(howManyAreGoingToEachStage)=0){
-				add [whereItIsGoing,1] to:howManyAreGoingToEachStage;
-				write 'ADDED NEW STAGE TO LEADER LIST ' +whereItIsGoing; 
-				write 'howManyAreGoingToEachStage length: -> '+length(howManyAreGoingToEachStage);
-			}
-			//find if where its going is already in list otherwise add
-			bool wasInList<-false;
-			loop l over: howManyAreGoingToEachStage{
-				write ' tester aktiv ' + l;
-				Stage s <- l[0];
-				if(s.name=whereItIsGoing.name){
-					wasInList<-true;
-					write 'tesing';
-				}
-			}
-			if(!wasInList){
-					add [whereItIsGoing,1] to: howManyAreGoingToEachStage;
-				}
-				
-			// increase if more are going to the same place
-			loop stage over: howManyAreGoingToEachStage{
-				int nrGoing<-stage[1];
-				Stage s<-stage[0];
-				write name+  ' ' + nrGoing+ ' to: '+s.name;
-				if(s=whereItIsGoing){
-					remove [s,nrGoing] from: howManyAreGoingToEachStage;
-					add [s,nrGoing+1] to: howManyAreGoingToEachStage;
-				}
-			}
-			// if guest doesnt like people, and more than crowd pref of guest - other agents are going to the same place, send it somewhere else
-			loop guest over: guestsAndWhereTheyAreGoing{
-				// info about the guests intentions
-				Guest currentGuest<-guestInfo[0];
-				Stage whereItIsGoing <-guestInfo[1];
-				int crowdPref<-guestInfo[2];
-				//check crowd of all stages and compare with guest crowd pref
-				loop st over: howManyAreGoingToEachStage{
-					int numberGoingThere<-st[1];
-					Guest nonPeopleLikingGuest<-currentGuest;
-					//write ' st[0] ' + st[0];
-					//write ' whereItIsGoing '+ whereItIsGoing;
-					//write ' crowdPref<numberGoingThere '+ crowdPref+'/'+numberGoingThere;
-					if((st[0]=whereItIsGoing)and crowdPref<numberGoingThere ){
-						
-						//write name + ' CHALLENGE: ' + nonPeopleLikingGuest + ' initial pick: ' + whereItIsGoing;
-						write ' Leader asking guest '+nonPeopleLikingGuest +' to re-evaluate choice';
-						// send it somewhere else
-						ask nonPeopleLikingGuest{
-							self.messageFromLeader<-'re-evaluate';
-							write '';
-							write name + ' asked ' + nonPeopleLikingGuest.name + ' to re-evaluate decision';
-							write name + ' Number of people going to  ' +whereItIsGoing + ' is: ' +numberGoingThere;
-							write name + ' and its preference is max: ' + crowdPref;
-							self.initialPick<-whereItIsGoing;
-							write '';
-						}
-					}
-				}
-				
-				
-			}
-			write name + ' People going to places: ' + length(guestsAndWhereTheyAreGoing);
-		}
-		//reset after checking everybody every time
-		guestsAndWhereTheyAreGoing<-nil;
-		howManyAreGoingToEachStage<-nil;
-		
-	}
-	aspect base{
-		draw name at: {2,-3} color:#black;
-		draw circle(4) at:{5,5} color: #orange ;
-	}
-}
 species Guest skills:[moving]{
-	//CHALLENGE
-	Stage imGoingHere;
-	int crowdMassPref;
-	string messageFromLeader<-'';
-	bool asked<-false;
-	Stage initialPick;
-	
 	//bool blinking<-false;
 	rgb mainColor<- #blue;
 	//specs
@@ -198,36 +91,28 @@ species Guest skills:[moving]{
 	list<list> utilityValues;
 	
 	//mood 1 = wants to go to a performance
-	/*reflex mood when: mood!=1{
+	reflex mood when: mood!=1{
 		
 		// feels like doing something else than go to a stage
 		if(mood=2){
 			do wander amplitude: 2;
+			write name + ' in a BAD mood.. ';
 			mainColor<-#yellow;
 			}
 			if(rnd(1,10)=1){
+				write name + ' in a GOOD mood again!.. ';
 				mood<-1; //we want to go to a performance again
 				mainColor<-#blue;
 			}
 		}
-		// CREATIVE
 		/*if(mood=3){
 			if(rnd(1,30)){
 				
 		}
 	}*/
 	
-	reflex getMessageFromLeader when: messageFromLeader='re-evaluate'{
-		// trigger to make a new choice
-		write name + ' !!!STOPPED from entering crowd!!!';
-		write ' CHALLENGE: ' + name + ' initial pick: ' + initialPick;
-		
-		bored<-true;
-		asked<-false;
-	}
-	
 	reflex acceptPerformanceFinishedWhenStageSaysSo when: messageFromStage='performance over'{
-		//write name + ' told by stage that the performance is over';
+		write name + ' told by stage that the performance is over';
 		messageFromStage<-'';
 		bored<-true;
 		
@@ -240,14 +125,14 @@ species Guest skills:[moving]{
 		
 		list<list> stageAndstageValues;
 	
-		//write name+ ' PREFERENCE: ' + myPreference;
+		write name+ ' PREFERENCE: ' + myPreference;
 	
 		
 		ask Stage{
 			//Option 1
 			//write name + 'Asking stages about stageValues';
 			//save values to later compare which is the closest one
-			//write 'adding stage value: ' +currentStageValue+' to stagevalues';
+			write 'adding stage value: ' +currentStageValue+' to stagevalues';
 			add [self,self.currentStageValue] to: stageAndstageValues;
 			
 			
@@ -274,27 +159,27 @@ species Guest skills:[moving]{
 			loop stageAndStageValue over: stageAndstageValues{
 				int diffTemp;
 				Stage diffStage;
-				//write 'INSIDE CHECKING LOOP';
+				write 'INSIDE CHECKING LOOP';
 				int stageValue <-stageAndStageValue[1];
-				//write name + ' stage value in loop: ' + stageValue;
+				write name + ' stage value in loop: ' + stageValue;
 				Stage loopStage <-stageAndStageValue[0];
 				//write ' DEBUG: STAGE CANNOT BE NULL, sValue: ' + sValue+ ' loopStage'+ loopStage;
 		 		// compare which value is the closest one
 		 		// find difference if my preference is a larger number than the stage value
 				if(myPreference>stageValue){ 
-			
+					write '--myPref större';
 					diffTemp<-myPreference-stageValue;
 					diffStage<-loopStage;
 				}
 				// find difference if my preference is a smaller number than the stage value
 				else if(myPreference<stageValue){ 
-				
+					write '--myPref mindre';
 					diffTemp<-stageValue-myPreference;
 					diffStage<-loopStage;
 				}
 				// om de e samma
 				else{ 
-					
+					write '--myPref 0';
 					diffTemp<-0;
 					diffStage<-loopStage;
 					
@@ -302,33 +187,27 @@ species Guest skills:[moving]{
 				//---
 				// if we didnt save a value to compare last value with yet
 				if(globalDiff=0){
-					
+					write '**globaldiff orginal';
 					globalDiff<-diffTemp;
 					globalStage<-loopStage;//globalDiff<-sValue;
 				}
 				// Compare the current(diffTemp) and the last value(globalDiff)
 				// larger value s further away, if globalDiff is further away, save diffTemp and stage
 				if(globalDiff>diffTemp){
-					
-					//write name + ' current loop stage was closer: ' + diffStage.name + ' value: ' + diffStage.currentStageValue;
+					write '**globaldiff större';
+					write name + ' current loop stage was closer: ' + diffStage.name + ' value: ' + diffStage.currentStageValue;
 					currentTopStageValue<-stageValue;  //diffTemp;//<- difftemp e en skillnad int ett värde
 					currentTopChoice<-diffStage;
 					globalDiff<-diffTemp;
 					globalStage<-diffStage;
-					if(messageFromLeader='re-evaluate'){
-						currentTopChoice<-loopStage;
-					}
-					
 				}
 				// otherwise current value is further away and globalTemp is my closest value
 				else if(globalDiff<diffTemp){
-					//TODO CHECK
-					//write name + ' previous loop stage was closer: ' + globalStage.name + ' value: ' + globalDiff;
+					//TODO check
+					write '**globaldiff mindre';
+					write name + ' previous loop stage was closer: ' + globalStage.name + ' value: ' + globalDiff;
 					currentTopChoice<-globalStage;
 					currentTopStageValue<-globalDiff;
-					if(messageFromLeader='re-evaluate'){
-						currentTopChoice<-loopStage;
-					}
 				}
 				
 				}
@@ -358,34 +237,53 @@ species Guest skills:[moving]{
 				currentTopChoice<-mostUtilityStage;
 				
 				write name + ' Stage: ' + currentTopChoice.name + ' was my prefered option. Value was highest: ' + currentTopStageValue;
-				*/
 				
+				
+				/* 
+				//write 'stages length: '+length(stages);
+				//what performance is going on at your stage?
+				if(myself.currentTopStageValue=0){
+					myself.currentTopStageValue<-self.currentStageValue;
+					//write '2: myself.currentTopStageValue' + myself.currentTopStageValue;
+					myself.currentTopChoice<-self;
+				}
+				else{
+					// if the value I have is closer to my preference keep it otherwise change
+					int temp<-myself.myPreference/self.currentStageValue; //the closer to my preference the larger the temp/the smaller the temp
+					// if checked value is larger the closest temp will be the larger one 10/11 vs 10/15
+					if(self.currentStageValue >myself.myPreference){
+						
+					}
+					// if checked value is smaller the closest temp will be the smaller one 10/9 vs 10/3
+					if(self.currentStageValue <myself.myPreference){
+						if(temp > myself.currentTopStageValue){
+							myself.currentTopStageValue<- temp;
+							myself.currentTopChoice<-self;
+						}
+					}
+					// if checked value is smaller the closest temp will be the smaller one 10/5 vs 10/2
+					if(temp < myself.currentTopStageValue){
+						myself.currentTopStageValue<- temp;
+						myself.currentTopChoice<-self;
+					}
+				}
+				
+			}*/	
+		//}
+		//write name + ' Stage: '+currentTopChoice.name +' matched my preferences the best.';
+		//write 'StageValue: ' + currentTopChoice.currentStageValue+ ' myValue '+myPreference;
 		//go to performance
 		bored<-false;
-		imGoingHere<-currentTopChoice;
-		//write name + ' Going there now...';
+		write name + ' Going there now...';
 		
 	}
 	// go to the stage with the performance I am most interested in
 	reflex goToBestPerformance when: !bored{
-	
-		if(messageFromLeader='re-evaluate'){
-			messageFromLeader<-'';
-			write ' CHALLENGE: new pick' + imGoingHere;
-		}
-		if(!asked){
-			write name + ' asking leader about crowd situation';
-			ask Leader {
-				//write 'imGoingHere ' + myself.imGoingHere;
-				//write 'myself ' + myself;
-				add [myself,myself.imGoingHere,myself.crowdMassPref] to: guestsAndWhereTheyAreGoing;
-			}
-			asked<-true;
-		}
+		
 		//write name + ' ' + currentTopChoice + ' fits my preferences better. Value: '+ currentTopStageValue;
 		do goto target:currentTopChoice speed: 6.0;
-		}
-	
+		
+	}
 	
 	aspect base {
 		if(bored){
@@ -503,7 +401,6 @@ experiment main type: gui {
 			//species Performer aspect: base ;
 			species Stage aspect: base ;
 			species Guest aspect: base ;
-			species Leader aspect: base ;
 		
 		}
 	}

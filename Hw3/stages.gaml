@@ -91,7 +91,7 @@ species Guest skills:[moving]{
 	list<list> utilityValues;
 	
 	//mood 1 = wants to go to a performance
-	reflex mood when: mood!=1{
+	/*reflex mood when: mood!=1{
 		
 		// feels like doing something else than go to a stage
 		if(mood=2){
@@ -102,7 +102,7 @@ species Guest skills:[moving]{
 				mood<-1; //we want to go to a performance again
 				mainColor<-#blue;
 			}
-		}
+		}*/
 		/*if(mood=3){
 			if(rnd(1,30)){
 				
@@ -201,10 +201,11 @@ species Guest skills:[moving]{
 				}
 				// otherwise current value is further away and globalTemp is my closest value
 				else if(globalDiff<diffTemp){
+					//TODO check
 					write '**globaldiff mindre';
 					write name + ' previous loop stage was closer: ' + globalStage.name + ' value: ' + globalDiff;
-					//currentTopChoice<-globalStage;
-					//currentTopStageValue<-globalDiff;
+					currentTopChoice<-globalStage;
+					currentTopStageValue<-globalDiff;
 				}
 				
 				}
