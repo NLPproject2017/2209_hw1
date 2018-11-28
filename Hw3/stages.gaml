@@ -76,16 +76,16 @@ species Guest skills:[moving]{
 		
 		}
 	
-	reflex askStagesAboutCurrentPerformances when: bored and init{
+	reflex askStagesAboutCurrentPerformances when: bored and time = 5{ //start at like cycle 3 to make sure stages have something running
 		// reset for next evaluation
 		currentTopChoice<-nil;
 		currentTopStageValue<-0;
 		
 		list<list> stageAndstageValues;
 		
-		write ' soundSystemVersionPreference ' + soundSystemVersionPreference;
-		write ' lightSystemVersionPreference ' + lightSystemVersionPreference;
-		write ' bandPreference '+bandPreference;
+		//write ' soundSystemVersionPreference ' + soundSystemVersionPreference;
+		//write ' lightSystemVersionPreference ' + lightSystemVersionPreference;
+		//write ' bandPreference '+bandPreference;
 		write 'myPreference ' + myPreference;
 		
 		int counter <- 1;
@@ -93,23 +93,28 @@ species Guest skills:[moving]{
 		Stage globalStage<-nil;
 		
 		ask Stage{
-			write 'looping stages';
+			//write name + 'Asking stages about stageValues';
 			//save values to later compare which is the closest one
 			add [self,self.currentStageValue] to: stageAndstageValues;
+			
 		}
 		//compare values from stages (something wrong with getting the values from llooped list)
-		if(counter = length(stages)){
+		
+			//write ' starting evaluation ';
 			int diffTemp;
 			Stage diffStage;
 			loop stageAndStageValue over: stageAndstageValues{
+				int sValue <-stageAndStageValue[1];
+				Stage loopStage <-stageAndStageValue[0];
+				write ' DEBUG: sValue: ' + sValue+ ' loopStage'+ loopStage;
 		 		// compare which value is the closest one
-				if(myPreference>stageAndStageValue[1]){ // 10/12
-					diffTemp<-myPreference-stageAndStageValue[1];
-					diffStage<-stageAndStageValue[0];
+				if(myPreference>sValue){ 
+					diffTemp<-myPreference-sValue;
+					diffStage<-loopStage;
 				}
-				else if(myPreference<stageAndStageValue[1]){ // 10/8
-					diffTemp<-stageAndStageValue[1]-myPreference;
-					diffStage<-stageAndStageValue[0];
+				else if(myPreference<sValue){ 
+					diffTemp<-sValue-myPreference;
+					diffStage<-loopStage;
 				}
 				else{ // om de e samma
 					diffTemp<-0;
@@ -121,19 +126,22 @@ species Guest skills:[moving]{
 				}
 				// larger value s further away
 				if(globalDiff>diffTemp){
+					write ' tempDiff was larger ' + diffTemp + ' vs ' + globalDiff ;
+					write ' meaning stage: ' + diffStage + ' was closer to my preference: ' + myPreference;
 					currentTopStageValue<-diffTemp;
 					write ' diffstage was smaller';
 					currentTopChoice<-diffStage;
-					write ' '+ diffStage+' with value: '+ diffTemp+ ' was closer';
+					//write name + ' values compared: diffTemp: '+ diffTemp+ ' globalDiff: '+ globalDiff;
+					//write ' '+ diffStage+' with value: '+ diffTemp+ ' was closer to my preference: ' + myPreference;
 				}
 				else{
-					write ' diffstage was larger stage: ' ;
+					write ' globalDiff was larger ' + globalDiff + ' vs ' + diffTemp ;
+					write ' meaning stage: ' + globalStage + ' was closer to my preference: ' + myPreference;
 					currentTopChoice<-globalStage;
 					currentTopStageValue<-globalDiff;
-					write ' '+ globalStage + ' with value: ' + globalDiff + ' was closer';
 				}
 				}
-				}
+				
 				/* 
 				//write 'stages length: '+length(stages);
 				//what performance is going on at your stage?
@@ -173,8 +181,8 @@ species Guest skills:[moving]{
 	}
 	// go to the stage with the performance I am most interested in
 	reflex goToBestPerformance when: !bored{
-		//write name + ' Going there now...';
-		
+		write name + ' Going there now...';
+		//write name + ' ' + currentTopChoice + ' fits my preferences better. Value: '+ currentTopStageValue;
 		do goto target:currentTopChoice speed: 6.0;
 		
 	}
