@@ -61,6 +61,7 @@ global {
 			bandPreference<-rnd(1,3);
 			pyroTechInterest<-rnd(1,3);
 			reputationInterest<-rnd(1,3);
+			XFactor<- rnd(1,3);
 			mood<-rnd(1,3);
 			myPreference<-soundSystemVersionPreference*lightSystemVersionPreference*bandPreference*pyroTechInterest*reputationInterest*rnd(1,3);
 			
@@ -76,6 +77,7 @@ species Guest skills:[moving]{
 	int bandPreference;
 	int pyroTechInterest;
 	int reputationInterest;
+	int XFactor;
 	int mood;
 	
 	int myPreference;
@@ -86,6 +88,7 @@ species Guest skills:[moving]{
 	//Stage with best match
 	Stage currentTopChoice;
 	int currentTopStageValue<-0;
+	list<list> utilityValues;
 	
 	//mood 1 = wants to go to a performance
 	reflex mood when: mood!=1{
@@ -124,14 +127,29 @@ species Guest skills:[moving]{
 	
 		
 		ask Stage{
+			//Option 1
 			//write name + 'Asking stages about stageValues';
 			//save values to later compare which is the closest one
 			write 'adding stage value: ' +currentStageValue+' to stagevalues';
 			add [self,self.currentStageValue] to: stageAndstageValues;
 			
+			
+			//Option 2: for calculating individual utlity
+			int repUtilityValue<- self.reputation*myself.reputationInterest;
+			int soundUtilityValue<- self.soundSystemVersion*myself.soundSystemVersionPreference;
+			int lightUtilityValue<-self.lightSystemVersion*myself.lightSystemVersionPreference;
+			
+			int pyroUtility<-self.pyroTechProbability*myself.pyroTechInterest;
+			int utilityXFactor<-self.XFactor*myself.XFactor;
+			//if(favBand)
+			int bandUtilityValue<-myself.bandPreference;
+			int calculatedUtilityValue<-(repUtilityValue+soundUtilityValue+lightUtilityValue+pyroUtility+utilityXFactor+bandUtilityValue)/6;
+			add [self,calculatedUtilityValue] to: myself.utilityValues;
+			
 		}
 		//compare values from stages (something wrong with getting the values from llooped list)
 		
+		//option 1
 			//write ' starting evaluation ';
 		int globalDiff<-0;
 		Stage globalStage<-nil;
@@ -192,6 +210,30 @@ species Guest skills:[moving]{
 				}
 				globalDiff<-0;
 				
+				/*
+				//Option 2
+				int mostUtility<-0;
+				Stage mostUtilityStage;
+				loop utilityValue over: utilityValues{
+					int currentValue<-utilityValue[1];
+					Stage currentStage<-utilityValue[0];
+					// first round
+					if(mostUtility=0){
+						mostUtility<-utilityValue[1];
+						mostUtilityStage<-utilityValue[0];
+					}
+					// if new one has a higher utility replace
+					if(mostUtility<currentValue){
+						mostUtility<-currentValue;
+						mostUtilityStage<-currentStage;
+					}
+					//else keep old
+					write name + ' Stage: ' + currentStage + ' utilityValue: ' + currentValue;
+				}
+				currentTopStageValue<-mostUtility; 
+				currentTopChoice<-mostUtilityStage;
+				
+				write name + ' Stage: ' + currentTopChoice.name + ' was my prefered option. Value was highest: ' + currentTopStageValue;
 				
 				
 				/* 
