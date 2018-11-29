@@ -10,7 +10,6 @@ model stages
 /* Insert your model definition here */
 
 global {
-	
 	bool init<-false;
 	
 	int numberOfGuests<-2;
@@ -18,7 +17,7 @@ global {
 	int numberOfPerformers<-nrOfStages;
 	//float waitStep <- 15 #mn;
 	
-	list<list> performances<- [['Rock Brothers',3],['Made in iron',1],['Sellby & co',1],['Hippie carousel',3],['Ricky', 2],['Information',1],['Rock legends',3]];
+	list<list> performances<- [['Rock Brothers',0.3],['Made in iron',0.1],['Sellby & co',0.1],['Hippie carousel',0.3],['Ricky', 0.2],['Information',0.1],['Rock legends',0.3]];
 	//location, band
 	list<list> currentStagePerformances;
 	//list<point> stage_locations;
@@ -31,12 +30,12 @@ global {
 			//add location to: stage_locations;
 			add location to: stages;
 			
-			soundSystemVersion<-rnd(1,5);
-			lightSystemVersion<-rnd(1,5);
-			sizeOfStage<-rnd(10,20);
-			pyroTechProbability<-rnd(1,3);
-			reputation<-rnd(1,5);
-			XFactor<-rnd(1,2);
+			soundSystemVersion<-rnd(0.1,0.3);
+			lightSystemVersion<-rnd(0.1,0.3);
+			sizeOfStage<-rnd(5,7);
+			pyroTechProbability<-rnd(0.1,0.3);
+			reputation<-rnd(0.1,0.3);
+			XFactor<-rnd(0.1,0.3);
 			//xFactor<-rnd(3);
 			
 			list<list> performers;
@@ -52,62 +51,58 @@ global {
 			//if we were unlucky and no performers wanted to play at the stage
 			if (length(performersAtStage)<2){
 					//write ' .. and Boring info 1&2';
-					add ['Boring information, version 1',1] to:performersAtStage;
-					add ['Boring information, version 2',1] to:performersAtStage;
+					add ['Boring information, version 1',0.1] to:performersAtStage;
+					add ['Boring information, version 2',0.1] to:performersAtStage;
 				}
 			
 		}
 		create Guest number: numberOfGuests {
-			soundSystemVersionPreference<-rnd(1,3);
-			lightSystemVersionPreference<-rnd(1,3);
-			bandPreference<-rnd(1,3);
-			pyroTechInterest<-rnd(1,3);
-			reputationInterest<-rnd(1,3);
-			XFactor<- rnd(1,3);
-			
-			//CHALLENGE
-			crowdMassPref<-1;//rnd(1,5);
-			
-			//CREATIVE
+			soundSystemVersionPreference<-rnd(0.1,0.8);
+			lightSystemVersionPreference<-rnd(0.1,0.8);
+			bandPreference<-rnd(0.1,0.9);
+			pyroTechInterest<-rnd(0.1,0.8);
+			reputationInterest<-rnd(0.1,0.8);
+			XFactor<- rnd(0.1,0.8);
 			mood<-rnd(1,3);
-			myPreference<-soundSystemVersionPreference*lightSystemVersionPreference*bandPreference*pyroTechInterest*reputationInterest*rnd(1,3);
+			
+			crowdMassPref<-rnd(1,3);
+			//myPreference<-soundSystemVersionPreference*lightSystemVersionPreference*bandPreference*pyroTechInterest*reputationInterest*rnd(1,3);
 			
 		}	
 		}
-		}
+}
+
 //CHALLENGE
 species Leader skills:[moving]{
 	// Guest, whereItIsGoing, crowdPref
 	list<list> guestsAndWhereTheyAreGoing;
 	// stage, numberGoingThere
 	list<list> howManyAreGoingToEachStage;
+	bool leaderBusy<-false;
 	
 	reflex directPeopleToRightPlace when:!empty(guestsAndWhereTheyAreGoing){
 
 		do wander speed: 4 amplitude: 4;
 		
-		//write name+  ' outside loop----------- length of guestlist: ' +length(guestsAndWhereTheyAreGoing);
 		loop guestInfo over:guestsAndWhereTheyAreGoing{
-			write 'loop guestInfo over:guestsAndWhereTheyAreGoing{';
 			// info about the guests intentions
 			Guest currentGuest<-guestInfo[0];
 			Stage whereItIsGoing <-guestInfo[1];
-			write ' guestInfo: '+guestInfo[1]; //NULL
+			write ' guestInfo: '+guestInfo[1]; 
 			int crowdPref<-guestInfo[2];
 			// add first entry
 			if(length(howManyAreGoingToEachStage)=0){
 				add [whereItIsGoing,1] to:howManyAreGoingToEachStage;
-				write 'ADDED NEW STAGE TO LEADER LIST ' +whereItIsGoing; 
-				write 'howManyAreGoingToEachStage length: -> '+length(howManyAreGoingToEachStage);
+				//write 'ADDED NEW STAGE TO LEADER LIST ' +whereItIsGoing; 
+				//write 'howManyAreGoingToEachStage length: -> '+length(howManyAreGoingToEachStage);
 			}
 			//find if where its going is already in list otherwise add
 			bool wasInList<-false;
 			loop l over: howManyAreGoingToEachStage{
-				write ' tester aktiv ' + l;
+				write ' people going to each stage: ' + l;
 				Stage s <- l[0];
 				if(s.name=whereItIsGoing.name){
 					wasInList<-true;
-					write 'tesing';
 				}
 			}
 			if(!wasInList){
@@ -121,6 +116,7 @@ species Leader skills:[moving]{
 				write name+  ' ' + nrGoing+ ' to: '+s.name;
 				if(s=whereItIsGoing){
 					remove [s,nrGoing] from: howManyAreGoingToEachStage;
+					write ' ';
 					add [s,nrGoing+1] to: howManyAreGoingToEachStage;
 				}
 			}
@@ -134,21 +130,20 @@ species Leader skills:[moving]{
 				loop st over: howManyAreGoingToEachStage{
 					int numberGoingThere<-st[1];
 					Guest nonPeopleLikingGuest<-currentGuest;
-					//write ' st[0] ' + st[0];
-					//write ' whereItIsGoing '+ whereItIsGoing;
-					//write ' crowdPref<numberGoingThere '+ crowdPref+'/'+numberGoingThere;
+					
 					if((st[0]=whereItIsGoing)and crowdPref<numberGoingThere ){
 						
-						//write name + ' CHALLENGE: ' + nonPeopleLikingGuest + ' initial pick: ' + whereItIsGoing;
+						write name + ' CHALLENGE: ' + nonPeopleLikingGuest + ' initial pick: ' + whereItIsGoing;
 						write ' Leader asking guest '+nonPeopleLikingGuest +' to re-evaluate choice';
 						// send it somewhere else
 						ask nonPeopleLikingGuest{
 							self.messageFromLeader<-'re-evaluate';
-							write '';
-							write name + ' asked ' + nonPeopleLikingGuest.name + ' to re-evaluate decision';
-							write name + ' Number of people going to  ' +whereItIsGoing + ' is: ' +numberGoingThere;
-							write name + ' and its preference is max: ' + crowdPref;
+							//write '';
+							//write name + ' asked ' + nonPeopleLikingGuest.name + ' to re-evaluate decision';
+							write myself.name + ' ' +self.name +' Number of people going to  ' +whereItIsGoing + ' is: ' +numberGoingThere;
+							write myself.name + ' and its preference is max: ' + crowdPref;
 							self.initialPick<-whereItIsGoing;
+							//write ' bored? should be true'+self.bored;
 							write '';
 						}
 					}
@@ -161,6 +156,7 @@ species Leader skills:[moving]{
 		//reset after checking everybody every time
 		guestsAndWhereTheyAreGoing<-nil;
 		howManyAreGoingToEachStage<-nil;
+		leaderBusy<-false;
 		
 	}
 	aspect base{
@@ -170,176 +166,70 @@ species Leader skills:[moving]{
 }
 species Guest skills:[moving]{
 	//CHALLENGE
-	Stage imGoingHere;
-	int crowdMassPref;
 	string messageFromLeader<-'';
-	bool asked<-false;
 	Stage initialPick;
-	
+	bool asked<-false;
+	int crowdMassPref;
 	//bool blinking<-false;
 	rgb mainColor<- #blue;
 	//specs
-	int soundSystemVersionPreference;
-	int lightSystemVersionPreference;
-	int bandPreference;
-	int pyroTechInterest;
-	int reputationInterest;
-	int XFactor;
+	float soundSystemVersionPreference;
+	float lightSystemVersionPreference;
+	float bandPreference;
+	float pyroTechInterest;
+	float reputationInterest;
+	float XFactor;
 	int mood;
 	
-	int myPreference;
+	//int myPreference;
 	
 	bool bored<-true;
 	string messageFromStage;
 	
 	//Stage with best match
 	Stage currentTopChoice;
-	int currentTopStageValue<-0;
+	float currentTopStageValue<-0;
 	list<list> utilityValues;
 	
-	//mood 1 = wants to go to a performance
-	/*reflex mood when: mood!=1{
-		
-		// feels like doing something else than go to a stage
-		if(mood=2){
-			do wander amplitude: 2;
-			mainColor<-#yellow;
-			}
-			if(rnd(1,10)=1){
-				mood<-1; //we want to go to a performance again
-				mainColor<-#blue;
-			}
-		}
-		// CREATIVE
-		/*if(mood=3){
-			if(rnd(1,30)){
-				
-		}
-	}*/
-	
-	reflex getMessageFromLeader when: messageFromLeader='re-evaluate'{
-		// trigger to make a new choice
-		write name + ' !!!STOPPED from entering crowd!!!';
-		write ' CHALLENGE: ' + name + ' initial pick: ' + initialPick;
-		
-		bored<-true;
-		asked<-false;
-	}
-	
 	reflex acceptPerformanceFinishedWhenStageSaysSo when: messageFromStage='performance over'{
-		//write name + ' told by stage that the performance is over';
+		write name + ' Told by stage that the performance is over';
 		messageFromStage<-'';
+		currentTopChoice<-nil;
+		currentTopStageValue<-0;
 		bored<-true;
 		
+		
+		}
+		reflex messageFromLeader when: messageFromLeader='re-evaluate'{
+			bored<-true;
 		}
 	
 	reflex askStagesAboutCurrentPerformances when: bored and init{ //start at like cycle 3 to make sure stages have something running
 		// reset for next evaluation
 		currentTopChoice<-nil;
 		currentTopStageValue<-0;
-		
-		list<list> stageAndstageValues;
-	
-		//write name+ ' PREFERENCE: ' + myPreference;
-	
+		utilityValues<-nil;
 		
 		ask Stage{
-			//Option 1
-			//write name + 'Asking stages about stageValues';
-			//save values to later compare which is the closest one
-			//write 'adding stage value: ' +currentStageValue+' to stagevalues';
-			add [self,self.currentStageValue] to: stageAndstageValues;
-			
 			
 			//Option 2: for calculating individual utlity
-			int repUtilityValue<- self.reputation*myself.reputationInterest;
-			int soundUtilityValue<- self.soundSystemVersion*myself.soundSystemVersionPreference;
-			int lightUtilityValue<-self.lightSystemVersion*myself.lightSystemVersionPreference;
+			float repUtilityValue<- self.reputation*myself.reputationInterest;
+			float soundUtilityValue<- self.soundSystemVersion*myself.soundSystemVersionPreference;
+			float lightUtilityValue<-self.lightSystemVersion*myself.lightSystemVersionPreference;
 			
-			int pyroUtility<-self.pyroTechProbability*myself.pyroTechInterest;
-			int utilityXFactor<-self.XFactor*myself.XFactor;
+			float pyroUtility<-self.pyroTechProbability*myself.pyroTechInterest;
+			float utilityXFactor<-self.XFactor*myself.XFactor;
 			//if(favBand)
-			int bandUtilityValue<-myself.bandPreference;
-			int calculatedUtilityValue<-(repUtilityValue+soundUtilityValue+lightUtilityValue+pyroUtility+utilityXFactor+bandUtilityValue)/6;
+			float bandUtilityValue<-myself.bandPreference;
+			float calculatedUtilityValue<-(repUtilityValue+soundUtilityValue+lightUtilityValue+pyroUtility+utilityXFactor+bandUtilityValue);
 			add [self,calculatedUtilityValue] to: myself.utilityValues;
 			
-		}
-		//compare values from stages (something wrong with getting the values from llooped list)
-		
-		//option 1
-			//write ' starting evaluation ';
-		int globalDiff<-0;
-		Stage globalStage<-nil;
-			
-			loop stageAndStageValue over: stageAndstageValues{
-				int diffTemp;
-				Stage diffStage;
-				//write 'INSIDE CHECKING LOOP';
-				int stageValue <-stageAndStageValue[1];
-				//write name + ' stage value in loop: ' + stageValue;
-				Stage loopStage <-stageAndStageValue[0];
-				//write ' DEBUG: STAGE CANNOT BE NULL, sValue: ' + sValue+ ' loopStage'+ loopStage;
-		 		// compare which value is the closest one
-		 		// find difference if my preference is a larger number than the stage value
-				if(myPreference>stageValue){ 
-			
-					diffTemp<-myPreference-stageValue;
-					diffStage<-loopStage;
-				}
-				// find difference if my preference is a smaller number than the stage value
-				else if(myPreference<stageValue){ 
-				
-					diffTemp<-stageValue-myPreference;
-					diffStage<-loopStage;
-				}
-				// om de e samma
-				else{ 
-					
-					diffTemp<-0;
-					diffStage<-loopStage;
-					
-				}
-				//---
-				// if we didnt save a value to compare last value with yet
-				if(globalDiff=0){
-					
-					globalDiff<-diffTemp;
-					globalStage<-loopStage;//globalDiff<-sValue;
-				}
-				// Compare the current(diffTemp) and the last value(globalDiff)
-				// larger value s further away, if globalDiff is further away, save diffTemp and stage
-				if(globalDiff>diffTemp){
-					
-					//write name + ' current loop stage was closer: ' + diffStage.name + ' value: ' + diffStage.currentStageValue;
-					currentTopStageValue<-stageValue;  //diffTemp;//<- difftemp e en skillnad int ett värde
-					currentTopChoice<-diffStage;
-					globalDiff<-diffTemp;
-					globalStage<-diffStage;
-					if(messageFromLeader='re-evaluate'){
-						currentTopChoice<-loopStage;
-					}
-					
-				}
-				// otherwise current value is further away and globalTemp is my closest value
-				else if(globalDiff<diffTemp){
-					//TODO CHECK
-					//write name + ' previous loop stage was closer: ' + globalStage.name + ' value: ' + globalDiff;
-					currentTopChoice<-globalStage;
-					currentTopStageValue<-globalDiff;
-					if(messageFromLeader='re-evaluate'){
-						currentTopChoice<-loopStage;
-					}
-				}
-				
-				}
-				globalDiff<-0;
-				
-				/*
+		}		
 				//Option 2
-				int mostUtility<-0;
+				float mostUtility<-0;
 				Stage mostUtilityStage;
 				loop utilityValue over: utilityValues{
-					int currentValue<-utilityValue[1];
+					float currentValue<-utilityValue[1];
 					Stage currentStage<-utilityValue[0];
 					// first round
 					if(mostUtility=0){
@@ -357,13 +247,24 @@ species Guest skills:[moving]{
 				currentTopStageValue<-mostUtility; 
 				currentTopChoice<-mostUtilityStage;
 				
+				
 				write name + ' Stage: ' + currentTopChoice.name + ' was my prefered option. Value was highest: ' + currentTopStageValue;
-				*/
 				
 		//go to performance
+		if(messageFromLeader='re-evaluate'){
+			
+			int randNr<- rnd(1,length(utilityValues)-1);
+			list random <-utilityValues[randNr];
+			float uliVal<-random[1];
+			Stage randChoice <- random[0];
+			currentTopStageValue<-uliVal;
+			currentTopChoice<-randChoice;
+			
+			write name + 'Re-evaluated, now going to ' + currentTopChoice + ' instead';
+		}
 		bored<-false;
-		imGoingHere<-currentTopChoice;
-		//write name + ' Going there now...';
+		asked<-false;
+		write name + ' Going there now...';
 		
 	}
 	// go to the stage with the performance I am most interested in
@@ -371,21 +272,24 @@ species Guest skills:[moving]{
 	
 		if(messageFromLeader='re-evaluate'){
 			messageFromLeader<-'';
-			write ' CHALLENGE: new pick' + imGoingHere;
+			write ' CHALLENGE: new pick' + currentTopChoice;
 		}
 		if(!asked){
 			write name + ' asking leader about crowd situation';
 			ask Leader {
 				//write 'imGoingHere ' + myself.imGoingHere;
 				//write 'myself ' + myself;
-				add [myself,myself.imGoingHere,myself.crowdMassPref] to: guestsAndWhereTheyAreGoing;
+				if(!self.leaderBusy){
+					self.leaderBusy<-true;
+					add [myself,myself.currentTopChoice,myself.crowdMassPref] to: guestsAndWhereTheyAreGoing;
+					myself.asked<-true;
+				}
 			}
-			asked<-true;
+			
 		}
 		//write name + ' ' + currentTopChoice + ' fits my preferences better. Value: '+ currentTopStageValue;
 		do goto target:currentTopChoice speed: 6.0;
 		}
-	
 	
 	aspect base {
 		if(bored){
@@ -399,37 +303,30 @@ species Guest skills:[moving]{
 				draw circle(3) color: #red ;
 			}
 		}
-		draw ''+myPreference at: location+{2,-2} color: #black;
+		draw ''+name at: location+{2,-2} color: #black;
 	}
 }
 species Stage {
 	//specs
-	int soundSystemVersion<-0;
-	int lightSystemVersion<-0;
+	float soundSystemVersion<-0;
+	float lightSystemVersion<-0;
 	int sizeOfStage<-0;
-	int pyroTechProbability<-0;
-	int reputation<-0;
-	int XFactor<-0;
+	float pyroTechProbability<-0;
+	float reputation<-0;
+	float XFactor<-0;
 	//also depends on band
 	
-	int currentStageValue<-0;//(soundSystemVersion*lightSystemVersion*sizeOfStage*pyroTechProbability*reputation*XFactor)/10;
+	float currentStageValue<-0;//(soundSystemVersion*lightSystemVersion*sizeOfStage*pyroTechProbability*reputation*XFactor)/10;
 	string currentPerformer;
 	
 	list<list> performersAtStage;
 	bool onGoing<-false;
 	
 	aspect base {
-		
-		if(!onGoing){
-			draw square(sizeOfStage) color: #brown ;
-		}
-		else{
-			if(rnd(1,2)=2){
-				draw square(sizeOfStage) color: #green ;
-			}
-		}
+		draw square(sizeOfStage) color: #green ;
 		draw name at: location+{2,-3} color:#black;
-		draw ''+currentStageValue at: location color:#black;
+		//option 1
+		//draw ''+currentStageValue at: location color:#black;
 		
 	}
 	
@@ -441,9 +338,12 @@ species Stage {
 	reflex idleBetweenPerformances when: stageIdle{
 		//write name + ' no performance at the moment';
 		// reinstall system versions
-		soundSystemVersion<-rnd(1,3);
-		lightSystemVersion<-rnd(1,3);
-		pyroTechProbability<-rnd(1,3);
+		soundSystemVersion<-rnd(0.1,0.8);
+		lightSystemVersion<-rnd(0.1,0.5);
+		pyroTechProbability<-rnd(0.1,0.8);
+		//int sizeOfStage<-0;
+		reputation<-rnd(0.1,0.3);
+		XFactor<-rnd(0.1,0.3);
 		
 		currentPerformer<-(performersAtStage[0])[0];
 		//write name + ' next performer will be: '+currentPerformer;
@@ -453,8 +353,10 @@ species Stage {
 		
 		//wait a few seconds
 		//----
+		if(rnd(1,15)=1){
 		newBandReady<-true;
 		stageIdle<-false;
+}
 		
 	}
 	
@@ -465,28 +367,27 @@ species Stage {
 		init<-true;
 
 		//calculate current stage value
-		int currentBandHype<-(performersAtStage[0])[1];
-		//write name + ' current band hype value: ' +(performersAtStage[0])[1];
-			currentStageValue<-(soundSystemVersion*lightSystemVersion*sizeOfStage*pyroTechProbability*reputation*XFactor*currentBandHype)/10;
+		float currentBandHype<-(performersAtStage[0])[1];
 		
 		write name + ' new band on stage! '+currentPerformer+ ' Sound system version: '+ soundSystemVersion+ ' Lisgt system version: '+ lightSystemVersion ;
-		write name + ' NEW value: ' + currentStageValue;
+		//write name + ' NEW value: ' + currentStageValue;
 		
 		performanceOngoing<-true;
-		//anounce current performance through list
-		//add [location,currentPerformer,soundSystemVersion,lightSystemVersion]to: currentStagePerformances;
 		
 	}
 	// run for a while then tell guests its over
 	reflex activelyPlaying when: performanceOngoing{
-		
+		list<Guest> guestsAtStage <- (Guest at_distance 2);
+		if(!empty(guestsAtStage)){
+			write name + ' Playing now! guests listening ' +guestsAtStage;
+		}
 		if(rnd(15)=1){
 			performanceOngoing<-false;
 			stageIdle<-true;
 			//write name + ' performance finished';
 			
-			//its finished
-			ask Guest at_distance 2{
+			// tell all guests that it is over
+			ask guestsAtStage{
 				
 				self.messageFromStage<-'performance over';
 				}
@@ -503,7 +404,7 @@ experiment main type: gui {
 			//species Performer aspect: base ;
 			species Stage aspect: base ;
 			species Guest aspect: base ;
-			species Leader aspect: base ;
+			species Leader aspect: base;
 		
 		}
 	}
