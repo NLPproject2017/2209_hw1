@@ -63,7 +63,9 @@ global {
 			pyroTechInterest<-rnd(0.1,0.8);
 			reputationInterest<-rnd(0.1,0.8);
 			XFactor<- rnd(0.1,0.8);
-			mood<-rnd(1,3);
+			mood<-rnd(0,2);
+			write name + ' has start mood: ' +mood;
+			
 			
 			crowdMassPref<-rnd(1,3);
 			//myPreference<-soundSystemVersionPreference*lightSystemVersionPreference*bandPreference*pyroTechInterest*reputationInterest*rnd(1,3);
@@ -170,6 +172,8 @@ species Guest skills:[moving]{
 	Stage initialPick;
 	bool asked<-false;
 	int crowdMassPref;
+	bool triggeredHappy<-false;
+	float speed<-5.0;
 	//bool blinking<-false;
 	rgb mainColor<- #blue;
 	//specs
@@ -202,32 +206,37 @@ species Guest skills:[moving]{
 		}
 		
 	}
-	reflex howAmIFeelingTwo when: mood=0{
-		write name + 'is super happy!!';
-		if(!(rnd(50)=1)){
+	reflex howAmIFeelingTwo when: mood=0 and !triggeredHappy{
+		write name + 'is super HAPPY!!';
+		triggeredHappy<-true;
+		speed<-10;
+		mainColor<-#yellow;
+		/*if(!(rnd(50)=1)){
 			do wander speed: 10 amplitude: 10;
 		}
 		else{
 			//change mood
 			mood<-rnd(1,3);
-		}
+		}*/
 	}
 	
-	reflex acceptPerformanceFinishedWhenStageSaysSo when: messageFromStage='performance over'and mood=1{
+	reflex acceptPerformanceFinishedWhenStageSaysSo when: messageFromStage='performance over'and mood!=2{
 		write name + ' Told by stage that the performance is over';
 		messageFromStage<-'';
 		currentTopChoice<-nil;
 		currentTopStageValue<-0;
 		bored<-true;
-		mood<-rnd(1,3);
-		
-		
+		// can become in a bad mood
+		if(rnd(1,10)=1){
+				mood<-2;
+			}
 		}
-		reflex messageFromLeader when: messageFromLeader='re-evaluate'and mood=1{
+		
+		reflex messageFromLeader when: messageFromLeader='re-evaluate'and mood!=2{
 			bored<-true;
 		}
 	
-	reflex askStagesAboutCurrentPerformances when: bored and init and mood=1{ //start at like cycle 3 to make sure stages have something running
+	reflex askStagesAboutCurrentPerformances when: bored and init and mood!=2{ //start at like cycle 3 to make sure stages have something running
 		// reset for next evaluation
 		currentTopChoice<-nil;
 		currentTopStageValue<-0;
@@ -291,11 +300,11 @@ species Guest skills:[moving]{
 		
 	}
 	// go to the stage with the performance I am most interested in
-	reflex goToBestPerformance when: !bored and mood=1{
+	reflex goToBestPerformance when: !bored and mood!=2{
 	
 		if(messageFromLeader='re-evaluate'){
 			messageFromLeader<-'';
-			write ' CHALLENGE: new pick' + currentTopChoice;
+			write name + ' CHALLENGE: new pick' + currentTopChoice;
 		}
 		if(!asked){
 			write name + ' asking leader about crowd situation';
@@ -311,22 +320,36 @@ species Guest skills:[moving]{
 			
 		}
 		//write name + ' ' + currentTopChoice + ' fits my preferences better. Value: '+ currentTopStageValue;
-		do goto target:currentTopChoice speed: 6.0;
+		do goto target:currentTopChoice speed: speed;
+		// manage happy mood
+		if((location distance_to(currentTopChoice)<2)and triggeredHappy ){
+			triggeredHappy<-false;
+			mood<-1;
+			speed<-5.0;
+			mainColor<-#blue;
+		}
+		// performance can make them happy
+		else if((location distance_to(currentTopChoice)<2)and !triggeredHappy){
+			// can become Happy
+			if(rnd(1,10)=1){
+				mood<-0;
+			}
+		}
 		}
 	
 	aspect base {
 		if(mood=2){
-			draw circle(5) color: #black ;
+			draw circle(5) color: mainColor ;
 		}
 		if(mood=0){
-			draw circle(5) color: #yellow ;
+			draw circle(5) color: mainColor ;
 		}
 		if(bored){
 			draw circle(3) color: #blue ;
 		}
 		else{
 			if(rnd(3)=1){
-				draw circle(3) color: #blue ;
+				draw circle(3) color: mainColor ;
 			}
 			else{
 				draw circle(3) color: #red ;

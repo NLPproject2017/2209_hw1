@@ -272,7 +272,7 @@ species Guest skills:[moving]{
 	
 		if(messageFromLeader='re-evaluate'){
 			messageFromLeader<-'';
-			write ' CHALLENGE: new pick' + currentTopChoice;
+			write name+  ' CHALLENGE: new pick' + currentTopChoice;
 		}
 		if(!asked){
 			write name + ' asking leader about crowd situation';
