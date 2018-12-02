@@ -78,6 +78,7 @@ species Queen skills: [fipa, moving] {
 	bool updatePosition<-false;
 	bool isBusy<-false;
 	cell myOldCell;
+	list myOldMoves;
 	
 	bool askedByPredecessor <-false;
 	
@@ -85,6 +86,7 @@ species Queen skills: [fipa, moving] {
 		isBusy<-true;
 	 	write name +": I was asked to update myPosition";
 	 	myOldCell <- myCell;
+	 	add myCell to:myOldMoves; 
 	 	myCell <-nil;
 	 	list grida_data_deleted;
 	 	loop i over:grid_occupation {
@@ -129,12 +131,14 @@ species Queen skills: [fipa, moving] {
 	    		loop while:( loopGridY <= number_of_queens  - 1 and !isFound){
 	    			cell cell_candidate <-cell grid_at {gridX, loopGridY};
 	    			//TODO: should check all unsuccessfull old Cell moves and if still not found new, it should ask predecessor
-	    			if (grid_occupied_cells contains cell_candidate or cell_candidate=myOldCell)
+	    			//WHEN DOES IT Empty the Old Moves list??
+	    			//if (grid_occupied_cells contains cell_candidate or cell_candidate=myOldCell)
+	    			if (grid_occupied_cells contains cell_candidate or myOldMoves contains cell_candidate)
 	    			{
 	    				//write name: cell_candidate.name + "already occupied";
-	    				if (cell_candidate=myOldCell)
+	    				if (myOldMoves contains cell_candidate)
 	    				{
-	    					write name + ":It was my old cell!";
+	    					write name + ":It was my old cell! I can't choose it!";
 	    				}
 	    			}else{
 	    				isFound <-true;
@@ -251,6 +255,7 @@ species Queen skills: [fipa, moving] {
 	    					
 	    					ask Queen {
 					    		if (self.name =  myself.successor){
+					    			self.myOldMoves <- nil; 
 					    			self.updatePosition <- true;
 					    			
 					    			updatePos <- self.updatePosition;
