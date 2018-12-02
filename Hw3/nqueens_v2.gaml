@@ -1,86 +1,99 @@
+/*
+ * Group 11: Shakhrom Rustamov, Henrietta Hellberg
+ *  Asignement 3, Task 1 - NQueens problem.
+ * 
+ */
 model Grid
-
 global {
+	//PLEASE SET QUEEN SIZE FOR NQueen Problem
+	int number_of_queens <- 10;
+	
+	int grid_size <- number_of_queens * number_of_queens;
+	int grid_cell_counter <-1; 
+	int x_axis <- 0;
+	matrix data;
+	
 	bool globalPositioning <-false;
-	int number_of_queens <- 8;
+	bool globalPositionCheck<-false;
+	bool setQueenParameters <-false;
 	
 	list grid_occupation; // [cell, queenName]
 	list grid_occupied_cells;//[cell] only occupied cell info
-	int grid_size <- number_of_queens;
-	int grid_cell_counter <-1; 
-	
-	//[cell_of_queen, name, isCollided]
-	list queens_positions;
-	//list<agent, collisionStatus> successMatrix;
-	bool globalPositionCheck<-false;
-	bool setQueenParameters <-false;
-	bool position_set <- false;
-	int x_axis <- 0;
+	list queens_positions;//[name, Placed/NotPlaced] Placed - when Queen position match all rules of the game
+	list allQueens;//list<agent, collisionStatus> successMatrix;
 	string lastCreatedQueen;
-	list allQueens;
+	
 	init {    
-		matrix data <- matrix([[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],
-							   [1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1]]);
+		
+		//
+		list matrixData;
+		int color_flip_column<-1;
+		int color_flip_row<-1;
+		int i <-1;
+		loop while:( i <= number_of_queens) {
+			color_flip_column <-color_flip_row;
+			list rowMatrix;
+			int j <-1;
+			loop  while:( j <= number_of_queens){
+				add color_flip_column to:rowMatrix;
+				color_flip_column <- color_flip_column = 1 ? 0 : 1;
+				
+				j<-j+1;
+			}
+			write "row matrix: " + rowMatrix;
+			add rowMatrix to:matrixData;
+			color_flip_row <- color_flip_row = 1 ? 0 : 1;
+			i<-i+1;
+		}
+		data <- matrix(matrixData);
 		
 		ask cell {
 			bool is_obstacle <-flip(0.2);
       		grid_value <- float(data[grid_x,grid_y]);
-      		write data[grid_x,grid_y];
+      		//write data[grid_x,grid_y];
       		}
       	
       	create Queen number: number_of_queens {
-      		//location <- data[1 + rnd(1,6) ,1 + rnd(1,6)];
-      		position_set <- false;
       		point temp_location;
       		cell call_location;
-      		
-      		
-      		
-      		//loop y over: number_of_queens-1 {
-      			call_location <-cell grid_at {x_axis, 0};
-      			temp_location<-(call_location).location;
-      			write "Queen:" + name + " is waiting to placed at " +  " at column:" + x_axis; 
-      			x_axis <- x_axis + 1; 
-      		
-      		//add [call_location, name] to: queens_positions;
-      		//add [call_location, name, predecessor, "NotPlaced"] to: queens_positions;
+  			
+  			call_location <-cell grid_at {x_axis, 0};
+  			temp_location<-(call_location).location;
+  			write name + " is waiting to placed at " +  " at column:" + x_axis; 
+  			x_axis <- x_axis + 1; 
+  		
       		add [name, "NotPlaced"] to: queens_positions;
       		
       		myCell <- call_location;
       		myX <-call_location.grid_x;
       		myY<-call_location.grid_y;
       		location <-temp_location;
-      		position_set <-true;
-      		
-      		
       	}
       	    	
 		}
 	}
 
-/*
- * 1. do some "fuction"/reflex to update pred/successor
- * 2. Checks if neghbour is collisionFree, then moves it
- * 2. else, asks predecessor to move and etc.
- * */
 	
 species Queen skills: [fipa, moving] {
-	list<list> neighbour_position;
-	string predecessor;
-	string successor;
-	bool askedToMove <- false;
-	bool collision <-false;
 	int myX <- location.x; //This should be grid value	
 	int myY <- location.y;
-	bool occupyCrossCells <-false;
+
+	string predecessor;
+	string successor;
+
 	cell myCell;
+	cell myOldCell;
+	list myOldMoves;
+
+	bool askedToMove <- false;
+	bool collision <-false;
+	bool occupyCrossCells <-false;
 	bool findAndMoveToLocation<-false;
 	bool updatePosition<-false;
 	bool isBusy<-false;
-	cell myOldCell;
-	list myOldMoves;
-	
 	bool askedByPredecessor <-false;
+
+	list<list> neighbour_position;
 	
 	reflex update_to_new_position when: updatePosition and !isBusy{
 		isBusy<-true;
@@ -104,12 +117,8 @@ species Queen skills: [fipa, moving] {
 	 	updatePosition<-false;
 	 	isBusy<-false;
 	 	findAndMoveToLocation<-true;
-	 
 	}
 	reflex find_and_move_to_new_position when: findAndMoveToLocation{
-		write name + ": my successor:" + successor;
-		write name + ": my predecessor:" + predecessor;
-		write "findAndMoveToLocation is called";
 		//Checking if my current position is OK?
 		bool isMyPlaceSafe<-true;
 				loop g over: grid_occupation {
@@ -117,32 +126,34 @@ species Queen skills: [fipa, moving] {
 					isMyPlaceSafe<-false;
 					}
 				}
+				
 		if (myCell = nil)
 		{
 			isMyPlaceSafe<-false;
 		}
 		
 		if (!isMyPlaceSafe){
-				write "Finding place for it. Current position: " + myCell;
+				string currentPositionText <- (myCell = nil) ? nil: ("[" + myCell.grid_x + ":" + myCell.grid_y + "]");
+				write name + ": Finding place for myself. My current position: " + myCell;
     			int gridX <-myX;
     			int loopGridY <-0;
     			bool isFound<-false;
     			
 	    		loop while:( loopGridY <= number_of_queens  - 1 and !isFound){
 	    			cell cell_candidate <-cell grid_at {gridX, loopGridY};
-	    			//TODO: should check all unsuccessfull old Cell moves and if still not found new, it should ask predecessor
-	    			//WHEN DOES IT Empty the Old Moves list??
+	    			
+	    			//Checks all unsuccessfull old Cell moves and if still not found new, it should ask predecessor
 	    			//if (grid_occupied_cells contains cell_candidate or cell_candidate=myOldCell)
 	    			if (grid_occupied_cells contains cell_candidate or myOldMoves contains cell_candidate)
 	    			{
 	    				//write name: cell_candidate.name + "already occupied";
 	    				if (myOldMoves contains cell_candidate)
 	    				{
-	    					write name + ":It was my old cell! I can't choose it!";
+	    					//write name + ":It was my old cell! I can't choose it!";
 	    				}
 	    			}else{
 	    				isFound <-true;
-	    				write name + ": Found a place to move: " +cell_candidate.name;
+	    				write name + ": Found a place to move: " +cell_candidate + "[" + cell_candidate.grid_x + ":" + cell_candidate.grid_y + "]";
 	    				
 	    				myCell <-cell_candidate;
 	    				location <-cell_candidate.location;
@@ -169,7 +180,7 @@ species Queen skills: [fipa, moving] {
 	    	}
 	    	else {
 	    		//Already in safe place
-	    		write name + ": Already in safe spot" + myCell;
+	    		write name + ": Already in safe spot at " + myCell;
 	    				myCell <-myCell;
 	    				location <-myCell.location;
 	    				findAndMoveToLocation<-false;
@@ -180,10 +191,10 @@ species Queen skills: [fipa, moving] {
 	
 	reflex occupy_corossed_cells when: occupyCrossCells {
 		location <-myCell.location;
-		write name + "'s ccupy cell reflex called";
+		write name + ": booking same row, column and diagonal cells!";
 		//Occupy all related cells.
     	int loopGridX <- 0;
-    	write "Currently: grid_occupied_cells" + grid_occupied_cells;
+    	//write "Currently: grid_occupied_cells" + grid_occupied_cells;
 		loop while:( loopGridX <= number_of_queens  - 1){
 			
 			int loopGridY <- 0;
@@ -212,6 +223,7 @@ species Queen skills: [fipa, moving] {
 			loopGridX <-loopGridX + 1;
 		}
 		occupyCrossCells<-false;
+		
 		//Check if successor have any place left
 		bool isAvailbleCellFoundForSuccessor<-true;
 		if (myX<=number_of_queens-2){
@@ -231,7 +243,7 @@ species Queen skills: [fipa, moving] {
 	    				
 	    			}else{
 	    				isAvailbleCellFoundForSuccessor <-true;
-	    				write name + ": there are available for successor to move !";
+	    				write name + ": Confirming that there are available position for my successor to move!";
 	    			}
 	    			loopGridY<-loopGridY + 1;
 	    		}
@@ -246,7 +258,7 @@ species Queen skills: [fipa, moving] {
 	    		loopI<-loopI + 1;
 	    	}
 	    	if (successor!=nil){
-	    					write name + ": Replying to successor: " + successor + ": I've moved, find your place";
+	    					write name + ": Replying to my successor - " + successor + ": I've moved, find your place";
 	    					
 	    					bool updatePos;
 	    					bool findPos;
@@ -264,23 +276,23 @@ species Queen skills: [fipa, moving] {
 					    			debugObj <-self.name;
 					    		}
 				    		}
-				    		write "DEBUG: Stuck at grid. Info: \n debugObj: " + debugObj + 
-				    		"\n successor=" + successor +
-				    		"\n updatePosition=" + updatePos +
-				    		"\n findPos=" + findPos +
-				    		"\n occupyCross=" + occupyCross;
+//				    		write "DEBUG: Stuck at grid. Info: \n debugObj: " + debugObj + 
+//				    		"\n successor=" + successor +
+//				    		"\n updatePosition=" + updatePos +
+//				    		"\n findPos=" + findPos +
+//				    		"\n occupyCross=" + occupyCross;
 	    						
 	    				} 
 	    		else{
-    					write "Quuens Global Position Status:"  + queens_positions;
+    					//write "Quuens Global Position Status:"  + queens_positions;
 						globalPositionCheck<-true;
 	    		}
 	    	
 		}
 		else {
-			write name + ":No place is available for successor to move, asking predecessor: "+ predecessor + "to update its position.";
+			write name + ": No place is available for my successor to move, asking predecessor: "+ predecessor + " to update its position.";
 			//Removing my cell occupation
-			write name + ": Deleting my data first";
+			write name + ": Deleting my position data first";
 			myCell <-nil;
 		 	list grida_data_tobe_deleted;
 		 	loop i over:grid_occupation {
@@ -293,7 +305,6 @@ species Queen skills: [fipa, moving] {
 		 	loop t over:grida_data_tobe_deleted {
 		 		remove t from:grid_occupation;
 		 	}
-		 	
 		 		
 			//No place is available for successor to move, asking predecessor to update its position.
 			ask Queen {
@@ -311,17 +322,14 @@ species Queen skills: [fipa, moving] {
 
 }
 
-grid cell width: 8 height: 8 neighbors: 4 {
+grid cell width: number_of_queens height: number_of_queens neighbors: 4 {
 	//bool is_obstacle <- flip(0.2);
 	rgb color; 
 	float grid_value;
 	
-	reflex update_color when: grid_cell_counter <= 64 {
-		//write name + " is created at location: " + grid_x + ":" + grid_y;
-    	color <- (grid_value = 1) ? #grey : #white;
-    	
-    	//write "grid_cell_counter=" + grid_cell_counter;
-    	if (grid_cell_counter = 64){
+	reflex update_color when: grid_cell_counter <= grid_size {
+		color <- (grid_value = 1) ? #grey : #white;
+    	if (grid_cell_counter = grid_size){
     		setQueenParameters <-true;
     		}
     	grid_cell_counter <- grid_cell_counter + 1;
@@ -329,13 +337,11 @@ grid cell width: 8 height: 8 neighbors: 4 {
     	}
 
 reflex set_queen_parameters when: setQueenParameters {
-	//pred/succ set
-    	write "Debug queens_positions = " + queens_positions;
+		//pred/succ set
     	int loopI<-0;
     	int maxLimit <- length(queens_positions)-1;
     	loop while:(loopI <= maxLimit){
     		string queenName <- queens_positions[loopI][0];
-    		write queenName;
     		string successorQueenName;
     		string predecessorQueenName;
     		
@@ -349,7 +355,7 @@ reflex set_queen_parameters when: setQueenParameters {
     			successorQueenName <- queens_positions[temp][0];
     		}
     		
-    		write "Set parameteres for " + queenName + " with successor: " + successorQueenName + " and predecessor: " + predecessorQueenName;  
+    		//write "Set parameteres for " + queenName + " with successor: " + successorQueenName + " and predecessor: " + predecessorQueenName;  
     		
 			ask Queen {
 			if (self.name = queenName){
@@ -368,12 +374,11 @@ reflex set_queen_parameters when: setQueenParameters {
 reflex check_for_positions when: globalPositionCheck {
     	
     	
-    	write "globalPositioning started is called";
-    	write "Current Queens positions: " + queens_positions;
+    	write "globalPositionCheck reflex started is called";
+    	write "All Queens Status: " + queens_positions;
     	
     	string selectedQueenName;
     	bool selectedQueenCollided <-false;
-    	
     	
     	int loopI<-0;
     	loop while:(loopI <= length(queens_positions)-1 and selectedQueenName = nil){
@@ -387,7 +392,8 @@ reflex check_for_positions when: globalPositionCheck {
     	
     	if (selectedQueenName = nil)
     	{
-    		write "All queens are placed!";
+    		write "All queens are placed accoring to rules!";
+    		
     	}else{
     		write "Next Queen to be placed:" + selectedQueenName;
 	    	ask Queen {
@@ -398,10 +404,7 @@ reflex check_for_positions when: globalPositionCheck {
     	}
 
     	globalPositionCheck <-false;
-    	//write "queen positions: " + queens_positions;
-    	//write "Grid occupation by Queens: " + grid_occupation;
-	    //write "all occupied cells so far: " + grid_occupied_cells;
-    }
+      }
 }
 
 
