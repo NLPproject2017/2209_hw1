@@ -94,7 +94,7 @@ species guest skills: [moving] {
 				if (myself.emptyStoreInfo!=nil){
 					
 					//to ignore duplicates
-					if((!(self.emptyStores contains myself.emptyStoreInfo))){
+					if((!(self.emptyStores contains myself.emptyStoreInfo) and !self.busy)){
 						remove myself.emptyStoreInfo from: self.stores;
 						add myself.emptyStoreInfo to:self.emptyStores;
 						//keeps adding duplicates of empty stores
@@ -106,9 +106,8 @@ species guest skills: [moving] {
 				// get store location from point
 				if(length(self.stores)>0){
 					if(myself.askAgain){
-						write "SELF.STORES" + length(self.stores);
-						write "asked for another store " +myself.askAgain;
-						//has to be dynamic
+				
+						//write "asked for another store " +myself.askAgain;
 						myself.currentStore<-self.stores[rnd(length(self.stores)-1)];  
 					}	
 					else{		
@@ -176,41 +175,43 @@ species guest skills: [moving] {
 				{
 				if(myself.thirsty){
 					
-				if(self.drinkAvailable>0){
-					myself.thirsty<-false;
-					// remove drink from store
-					self.drinkAvailable <- self.drinkAvailable-1;
+					if(self.drinkAvailable>0){
+						myself.thirsty<-false;
+						// remove drink from store
+						self.drinkAvailable <- self.drinkAvailable-1;
 					
-					//write ""+myself.n+": went to store: " + self.n+" to eat, there were: "+drinkAvailable+"drink left";
-				}
-				// only one person reports store empty
-				else if(!self.alreadyReported){
-					self.alreadyReported<-true;
-					myself.storeEmpty<-true;
-					myself.emptyStoreInfo<-self.location;
-					myself.currentStore<-nil;
-					write "store was empty, going to report";
-					//write "drink available" + self.drinkAvailable;
-				}
-				else{
-					myself.currentStore<-nil;
-					write "store was empty, someone else already went to report";
-				}
-				}
-				else{
-					if(self.foodAvailable>0){
-					// remove food from store
-					self.foodAvailable <- self.foodAvailable-1;
-					myself.hungry<-false;
-					//write ""+myself.n+": went to store: " + self.n+" to eat, there were: "+foodAvailable+"food left";
 					}
-					else{
+					// only one person reports store empty
+					else if(!self.alreadyReportedDrink){
+						self.alreadyReportedDrink<-true;
 						myself.storeEmpty<-true;
 						myself.emptyStoreInfo<-self.location;
 						myself.currentStore<-nil;
-						
-						//write "store was empty, going wandering";
-						//write "food available" + self.foodAvailable;
+						//write "store was empty, going to report";
+					}
+					else{
+						myself.currentStore<-nil;
+						//write "store was empty, someone else already went to report";
+					}
+				}
+				else{
+					if(self.foodAvailable>0){
+						// remove food from store
+						self.foodAvailable <- self.foodAvailable-1;
+						myself.hungry<-false;
+					}
+					// only one person reports store empty
+					else if(!self.alreadyReportedFood){
+						self.alreadyReportedFood<-true;
+						myself.storeEmpty<-true;
+						myself.emptyStoreInfo<-self.location;
+						myself.currentStore<-nil;
+						write "store was empty, going to report";
+					}
+					else{
+						//myself.storeEmpty<-true;
+						//myself.emptyStoreInfo<-self.location;
+						myself.currentStore<-nil;
 					}
 				}
 				}

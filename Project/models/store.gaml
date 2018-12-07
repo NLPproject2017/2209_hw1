@@ -15,7 +15,8 @@ species store{
 	int foodAvailable; 
 	int drinkAvailable; 
 	
-	bool alreadyReported<-false;
+	bool alreadyReportedFood<-false;
+	bool alreadyReportedDrink<-false;
 	
 	reflex outOfone when: foodAvailable=0 and !(drinkAvailable=0) or drinkAvailable=0 and !(foodAvailable=0){
 		color<-#orange;
@@ -23,14 +24,21 @@ species store{
 	reflex outOfFoodAndDrink when: foodAvailable=0 and drinkAvailable=0{
 		color<-#red;
 	}
-	reflex restockedInventory when: !(foodAvailable=0 and drinkAvailable=0){
+	reflex restockedInventory when: !(foodAvailable=0){
 		color<-#green;
 		// someone is reporting to info that the store was empty
-		alreadyReported<-false;
+		alreadyReportedFood<-false;
+	}
+	reflex restockedInventory when: !(drinkAvailable=0){
+		color<-#green;
+		// someone is reporting to info that the store was empty
+		alreadyReportedDrink<-false;
 	}
 	aspect base {
 		draw square(size) color: color ;
-		draw 'Food: '+foodAvailable+ ' Drink: '+drinkAvailable at: location+{2,-2} color: #black;
+		draw 'location'+ location at: location+{2,-4} color: #black;
+		draw ' Food: '+foodAvailable+ ' Drink: '+drinkAvailable at: location+{2,-2} color: #black;
+		
 	}
 }
 

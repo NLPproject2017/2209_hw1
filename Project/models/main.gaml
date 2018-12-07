@@ -22,6 +22,7 @@ global {
 	int guests_init <- 10;
 	int info_init<-1;
 	int stores_init<-4;
+	int workers_init<-1;
 	
 	point infoPoint<-{50,50};
 	
@@ -45,12 +46,17 @@ global {
   			location <- {50,50};
   			stores<-storesGlobal;
 		}
-		create festivalWorker number: 1;
+		create festivalWorker number: workers_init{
+			energyLevel<-100;
+			energyRegeneration<-1;
+		}
 		
 }
 }
 experiment main type: gui {
-	parameter "Initial number of guests: " var: guests_init min: 1 max: 1000 category: "Guests" ;
+	parameter "Guests: " var: guests_init min: 1 max: 100 category: "Guests" ;
+	parameter "Stores: " var: stores_init min: 1 max: 10 category: "Stores" ;
+	parameter "Workers: " var: workers_init min: 1 max: 10 category: "Workers" ;
 	
 	output {
 		display main_display {
@@ -78,7 +84,7 @@ experiment main type: gui {
 4. They also have at least 3 personal traits that affect these rules.(How hungry/thirsty they are, if they like band or speakers...)
  - Guest: hunger/thirst, interested to buy categories, chill/party person, (if they like theband/stage-specs)
  - SecurityGuard: fitness-level a slow guard wont catch the bad guests, patience-level the guard may give the guest a warning instead of killing him, energy-level if he gets tired he has to rest
- - FestivalWorker: energy-level if he gets tired he has to rest, if not busy will volonteer for stage work, aggitation, if it behaves badly it can get fired by the security guard
+ - FestivalWorker: energy-level if he gets tired he has to rest (DONE), if not busy will volonteer for stage work, aggitation, if it behaves badly it can get fired by the security guard
  - Auctioneer: merchant interest buys back some  things if it is interested, cash plan affects purchases and sales, depending on the generosity the min sell price can drop
 -  onemore
 

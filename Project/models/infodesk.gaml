@@ -13,14 +13,14 @@ species info{
 	rgb color <-#red;
 	list<point> stores;
 	list<point> emptyStores;
-	
+	bool busy<-false;
 	agent badAgentLocation;
 	int badGuestNumber;
 	
 	//request festivalworker to fill inventories when one is empty
 	reflex requestFillStores when: !(length(emptyStores)=0){
 		light<-true;
-		write name + ' stores in need of supplies: '+emptyStores;
+		//write name + ' stores in need of supplies: '+emptyStores;
 	}
 	//request festivalworker to fill inventories when one is empty
 	reflex noStoresNeed when: (length(emptyStores)=0){
@@ -38,6 +38,17 @@ species info{
 	
  aspect base {
 		draw square(size) color: color ;
+		point firstOne <-first(emptyStores);
+		draw 'Empty stores: ' at: location+{-2,4} color: #black;
+		
+		//draw location at:  location+{2,-4} color: #black;
+		int i<-0;
+		loop tmpstore over: emptyStores{
+			i<-i+2;
+			point tempLoc <- location+{-2,4+i};
+			draw ''+tmpstore at: tempLoc color: #black;
+		}
+		
 	}
 }
 
