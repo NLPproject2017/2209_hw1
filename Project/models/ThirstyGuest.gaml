@@ -24,7 +24,7 @@ species guest skills: [moving] {
 	bool knowAll <-false;
 	bool storeEmpty<-false;
 	bool hungryOrThirsty<-true;
-	bool beingKilled<-false;
+	bool alive<-true;
 	
 	//TRAVELED
 	int movedDistance;
@@ -34,7 +34,8 @@ species guest skills: [moving] {
 	float y2;
 	point emptyStoreInfo;
 	
-	reflex die when: beingKilled  {
+	reflex die when: !alive  {
+		write 'Guest: ' + name + 'I died';
 		do die ;
 	}
 		
@@ -62,6 +63,16 @@ species guest skills: [moving] {
 			}
 		}
 	}
+	reflex randomlyBeBad{
+		// if info sees me i will be killed by guard
+		if (rnd(chance+ 70)=5)
+		{					
+			color<-#red;
+		}
+		else{
+			color<-#blue;
+		}
+	}
 	reflex goToPoint when: ((hungry or thirsty) and currentStore=nil) or askAgain or storeEmpty
 	{
 		// calc distance traveled
@@ -82,14 +93,6 @@ species guest skills: [moving] {
 			
 			ask info at_distance 7.1
 			{
-				// maybe move this to infopoint
-				if (rnd(myself.chance+ 30)=5) //Randomly choosen as BadAgent
-				{
-					//write "Guest number: " + myself.n + " is declared as Bad Guest. Security Called.";
-					callingGuard <- true;
-					self.badAgentLocation <- myself;
-					self.badGuestNumber <- myself.n;
-				}
 				
 				if (myself.emptyStoreInfo!=nil){
 					

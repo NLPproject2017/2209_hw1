@@ -8,10 +8,10 @@
 model main
 // first assignment
 import "ThirstyGuest.gaml"
-import "infodesk.gaml"
 import "store.gaml"
 import "festivalWorker.gaml"
 import "securityGuard.gaml"
+import "infodesk.gaml"
 
 //import "auctioneer.gaml"
 //import "stage.gaml"
@@ -32,7 +32,7 @@ global {
 	
 	init {
 		create guest number: guests_init ;
-		//create securityGuard number: 1 ;
+		create securityGuard number: 1 ;
 		create store number: stores_init{
 			point p <-{rnd(75),rnd(75)};
 			location<-p;
@@ -64,7 +64,7 @@ experiment main type: gui {
 			species info aspect: base;
 			species store aspect: base;
 			species festivalWorker aspect: base;
-			//species securityGuard aspect: base;
+			species securityGuard aspect: base;
 		}
 	}
 }
@@ -72,17 +72,17 @@ experiment main type: gui {
 
 /*
  1. Create at least 5 different types of moving agents. 
- -guest, securityGuard, festivalworker, auctioneer, ()
+ -guest, securityGuard, festivalworker, auctioneer, Car?
  2. Use at least 50 agents in your scenario. (Guest, Auctioneer, BadGuest, Security etc...)
  3. The agents have at least 1 different set of rules on how they interact with other types. (Security guard meeting bad person)
- - Guest: asks info for store locations, gets food and drink from stores
+ - Guest: asks info for store locations, gets food and drink from stores //DONE
  - SecurityGuard: when interacting with a bad guest it will kill him and it can interract with the info centre
- - FestivalWorker: Interracts with the info centre and the stores
+ - FestivalWorker: Interracts with the info centre and the stores // DONE
  - Auctioneer: interracts with guests and securityGuard
--  onemore
+-  onemore, blob that grows if people join the crowd ?/ taxi from info to some location?
 
 4. They also have at least 3 personal traits that affect these rules.(How hungry/thirsty they are, if they like band or speakers...)
- - Guest: hunger/thirst, interested to buy categories, chill/party person, (if they like theband/stage-specs)
+ - Guest: hunger/thirst //DONE, interested to buy categories, chill/party person, (if they like theband/stage-specs)
  - SecurityGuard: fitness-level a slow guard wont catch the bad guests, patience-level the guard may give the guest a warning instead of killing him, energy-level if he gets tired he has to rest
  - FestivalWorker: energy-level if he gets tired he has to rest (DONE), if not busy will volonteer for stage work, aggitation, if it behaves badly it can get fired by the security guard
  - Auctioneer: merchant interest buys back some  things if it is interested, cash plan affects purchases and sales, depending on the generosity the min sell price can drop

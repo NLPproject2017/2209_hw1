@@ -14,8 +14,9 @@ species info{
 	list<point> stores;
 	list<point> emptyStores;
 	bool busy<-false;
-	agent badAgentLocation;
+	
 	int badGuestNumber;
+	list badGuests;
 	
 	//request festivalworker to fill inventories when one is empty
 	reflex requestFillStores when: !(length(emptyStores)=0){
@@ -29,6 +30,46 @@ species info{
 	reflex allStoresEmpty when: length(emptyStores)=stores_init{
 		write "Food And Drink are finished at stores. Please come back later."; 	
 	}
+	reflex guestsInViewingDistance when: !empty(guest at_distance 7) {
+		// if we see a guest do something bad, call security
+		list glist<-guest at_distance 7;
+		loop g over: glist{
+			ask g
+			{
+				// guests are red when they do something bad
+				if(self.color=#red and !(myself.badGuests contains g)){
+					callingGuard <- true;
+					
+					add g to: myself.badGuests;
+				}
+			}
+		}
+	}
+	// give info to guard when he is close
+	reflex giveGuestInfoToGuard when: !empty(securityGuard at_distance 2){
+				
+	list securitylist<-securityGuard at_distance 2;
+		loop s over: securitylist{
+			agent badGuest<-first(badGuests);
+			ask s
+			{		
+					if(self.badAgent=nil){
+						//write 'guests in list: '+ myself.badGuests;
+						//write 'gave bad guestinfo to guard';
+						self.badAgent<-badGuest;
+					}	
+			}
+			remove badGuest from: badGuests;
+			//write ' after remove, bad guests left in list: '+ badGuests;
+		}
+	}
+	reflex badGuestsNeedHandling when: !empty(badGuests){
+		callingGuard <- true;
+	}
+	reflex noBadGuestsNeedHandling when: empty(badGuests){
+		callingGuard <- false;
+	}
+		
 	/*reflex requestAWorker when: (length(emptyStores)>0)// and !handled{
 	{
 		light<-true;
