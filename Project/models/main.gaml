@@ -14,6 +14,7 @@ import "securityGuard.gaml"
 import "infodesk.gaml"
 import "Auctioneer.gaml"
 import "participant.gaml"
+import "Criminal.gaml"
 
 //import "stage.gaml"
 //import "onemore.gaml"
@@ -26,6 +27,7 @@ global {
 	int workers_init<-1;
 	int auctioneers_init<-1;
 	int participants_init<-1;
+	int criminals_init<-1;
 	
 	point infoPoint<-{50,50};
 	
@@ -51,7 +53,50 @@ global {
 			}
 			//write name + " interested categories: "+ interestedCategories +" and willing to buy items:" + interestedToBuyItems;
 		}
-		create securityGuard number: 1 ;
+		create Criminal number: criminals_init{
+			// some are faster than others
+			speed<-rnd(4);
+			if(rnd(1)=1){
+				nice <- true;
+				color<-#pink;
+			}
+			else{
+				nice<-false;
+				color<-#red;
+			}
+			strength <-rnd(100);
+			if((strength<50)){
+				weak<-true;
+			}
+			else{
+				weak<-false;
+			}
+			
+		}
+		create securityGuard number: 1 {
+			if(rnd(1)=1){
+				newAtWork <- true;
+				color<-#cyan;
+			}
+			else{
+				newAtWork<-false;
+				color<-#cyan;
+			}
+			fitnessLevel<-rnd(100);
+			if(fitnessLevel<50){
+				speed<-1.0;
+			}
+			else{
+				speed<-3.0;
+			}
+			int patienceLevel<-rnd(1);
+			if(patienceLevel=1){
+				patient<-true;
+			}
+			else{
+				patient<-false;
+			}
+		}
 		create store number: stores_init{
 			point p <-{rnd(75),rnd(75)};
 			location<-p;
@@ -67,10 +112,18 @@ global {
 		}
 		create festivalWorker number: workers_init{
 			energyLevel<-100;
-			energyRegeneration<-1;
+			energyRegeneration<-1; 
+			int strength<-rnd(10);
+			if(strength>6){
+				strong<-true;
+			}
+			else{
+				strong<-false;
+			}
 		}
 		create Auctioneer number: auctioneers_init {
 			n<-'Auctioneer '+rnd(100);
+			generousity<-rnd(10);
 			
 			int index <- rnd(1,2);
 			add categories[index-1] to: selectCategories;
@@ -108,14 +161,14 @@ experiment main type: gui {
 	
 	output {
 		display main_display {
+			species securityGuard aspect: base;
 			species guest aspect: base ;
 			species info aspect: base;
 			species store aspect: base;
 			species festivalWorker aspect: base;
-			species securityGuard aspect: base;
+			
 			species Auctioneer aspect: base ;
-			// make into guest
-			//species Participant aspect: base ;
+			species Criminal aspect: base ;
 		}
 	}
 }
@@ -123,27 +176,27 @@ experiment main type: gui {
 
 /*
  1. Create at least 5 different types of moving agents. 
- -guest, securityGuard, festivalworker, auctioneer
+ -guest, securityGuard, festivalworker, auctioneer, Criminal
  2. Use at least 50 agents in your scenario. (Guest, Auctioneer, BadGuest, Security etc...)
  3. The agents have at least 1 different set of rules on how they interact with other types. (Security guard meeting bad person)
- - Guest: asks info for store locations, gets food and drink from stores // DONE
- - SecurityGuard: when interacting with a bad guest it will kill him and it can interract with the info centre // DONE
+ - Guest: asks info for store locations, gets food and drink from stores // DONE can be bad depending on different factors (ex criminal) // DONE
+ - SecurityGuard: when interacting with a bad guest it will kill him (or warn) and it can interract with the info centre // DONE
  - FestivalWorker: Interracts with the info centre and the stores // DONE
- - Auctioneer: interracts with guests and securityGuard
--  onemore, 
+ - Auctioneer: interracts with guests and securityGuard // DONE
+-  Criminal, has bad influence on guests // DONE and interracts with security guard // DONE 
 
 4. They also have at least 3 personal traits that affect these rules.(How hungry/thirsty they are, if they like band or speakers...)
- - Guest: hunger/thirst //DONE, interested to buy categories, chill/party person, (if they like theband/stage-specs)
- - SecurityGuard: fitness-level a slow guard wont catch the bad guests, patience-level the guard may give the guest a warning instead of killing him, energy-level if he gets tired he has to rest
- - FestivalWorker: energy-level if he gets tired he has to rest (DONE), if not busy will volonteer for stage work, aggitation, if it behaves badly it can get fired by the security guard
- - Auctioneer: merchant interest buys back some  things if it is interested, cash plan affects purchases and sales, depending on the generosity the min sell price can drop
--  onemore
+ - Guest: hunger/thirst //DONE, interested to buy categories, //DONE chill/party person, (if they like theband/stage-specs) <- dont know about this.. // TODO
+ - SecurityGuard: (if newguy) doesnt want to decide for itself, doesnt chase criminals // DONE fitness-level a slow guard wont catch the bad guests // DONE , patience-level the guard may give the guest a warning instead of killing him // DONE
+ - FestivalWorker: (energetic ?)energy-level if he gets tired he has to rest (DONE), can fill with more (strong) // TODO and change, aggitation, if it behaves badly it can get fired by the security guard // TODO
+ - Auctioneer: merchant interest buys back some  things if it is interested // TODO, cash plan affects purchases and sales, // TODO depending on the generosity the min sell price can drop (subtracts more or less when dropping price)// DONE  TODO ( might want to rethink these too)
+-  Criminal, if nice will only have bad influence on guests not rob stores // DONE if weak, will only rob what it can carry // DONE one more thing //TODO
 
  5. Have at least 2 different types of places where agents can meet, not including roaming (Bar, Stage...)
- - stores
- (- info centre)
- - stage
- 6. Make the simulation run over a total of 3 days (e.g. 1 minute = 1 cycle) 
- 7. Agent communicate with FIPA for long distance messaging but can use ask in close range. 
+ - stores // DONE
+ (- info centre) // DONE
+ - stage // if we use this.. // TODO
+ 6. Make the simulation run over a total of 3 days (e.g. 1 minute = 1 cycle) // TODO and fix so that everything has a good rate.. (i.e nt everyone is killed by guard hour 1)
+ 7. Agent communicate with FIPA for long distance messaging but can use ask in close range. // DONE
 - for auctioneer
 */

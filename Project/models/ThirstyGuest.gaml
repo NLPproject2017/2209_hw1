@@ -29,6 +29,7 @@ species guest skills: [fipa,moving] {
 	int chance <- 20;
 	int anotherStoreChance<-2;
 	int n <- rnd(100);
+	int warnings<-0;
 
 	bool thirsty <-false;
 	bool hungry<-false;
@@ -92,6 +93,7 @@ species guest skills: [fipa,moving] {
 			color<-#green;
 		}
 	}
+	//reflex gotBadInfluence when: 
 	// RELATED TO HUNGER/THIRST
 	reflex notHungryThirstyAnymore when: !hungry and !thirsty and !busyAuction{
 		busyFOOD<-false;
@@ -386,5 +388,6 @@ species guest skills: [fipa,moving] {
 		}
 	aspect base {
 		draw circle(size) color: color ;
+		draw ' !: ' + warnings at: location+{-2,5} color: #black;
 	}
 } 

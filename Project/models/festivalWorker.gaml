@@ -13,8 +13,10 @@ species festivalWorker skills: [moving]{
 	point storeToGoTo<-nil;
 	bool delivered<-false;
 	bool rest<-false;
+	bool strong;
 	int energyLevel;
 	int energyRegeneration;
+	
 	
 	reflex calledToInfo when:light and storeToGoTo = nil and !rest{
 		//write 'energy -1 called to info';
@@ -49,16 +51,25 @@ species festivalWorker skills: [moving]{
 	}
 	reflex goToStore when: storeToGoTo!=nil and !delivered and !rest{
 		//write 'energy -1 gotostore';
-		energyLevel<-energyLevel-1;
+		if(energyLevel>=1){
+			energyLevel<-energyLevel-1;
+		}
 		do goto target:storeToGoTo speed: 3.0;
 	
 		if(location distance_to(storeToGoTo)<2){
 			//write name + " ... is going to Store to fill up supplies";
 			ask store at_distance 2
 			{ 
-				self.foodAvailable<-5;
-				self.drinkAvailable<-5;
-				myself.delivered<-true;
+				if(!myself.strong){
+					self.foodAvailable<-3;
+					self.drinkAvailable<-3;
+					myself.delivered<-true;	
+				}
+				else{
+					self.foodAvailable<-10;
+					self.drinkAvailable<-10;
+					myself.delivered<-true;	
+				}
 			}
 			storeToGoTo<-nil;
 			delivered<-true;
@@ -67,7 +78,9 @@ species festivalWorker skills: [moving]{
 	}
 	reflex reportToInfo when:delivered and !rest{
 		//write 'energy -1 report';
-		energyLevel<-energyLevel-1;
+		if(energyLevel>=1){
+			energyLevel<-energyLevel-1;
+		}
 		do goto target:infoPoint speed: 3.0;
 		
 	
@@ -90,6 +103,7 @@ species festivalWorker skills: [moving]{
 			// rest and increase energy level
 			energyLevel<-energyLevel+energyRegeneration;
 			if(energyLevel>=100){
+				energyLevel<-100;
 				//write 'FULLY RESTED, REST FALSE';
 				rest<-false;
 			}
@@ -103,9 +117,14 @@ species festivalWorker skills: [moving]{
 	
 	aspect base {
 		draw circle(size) color: color ;
+		if(strong){
+			draw ' Strong ' at: location+{-2,5} color: #black;
+		}
+		else{
+			draw ' Weak ' at: location+{-2,5} color: #black;
+		}
 		if(storeToGoTo!=nil){
-		draw 'To: '+ storeToGoTo at: location+{2,-4} color: #black;
-		
+			draw 'To: '+ storeToGoTo at: location+{2,-4} color: #black;
 		}
 		if(energyLevel>50){ draw 'Energy level:  '+energyLevel at: location+{2,-2} color: #green;}
 		else{

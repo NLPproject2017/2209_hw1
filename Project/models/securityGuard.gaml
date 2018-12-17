@@ -15,7 +15,14 @@ species securityGuard  skills: [moving]{
 	bool busy <- false; 
 	guest badAgent<-nil;
 	//int badGuestNumber;
-	
+	//criminals
+	int energy<-100;
+	bool chasingCriminal<-false;
+	Criminal c;
+	bool newAtWork;
+	int fitnessLevel;
+	float speed;
+	bool patient;
 
 	reflex beIdle when: !busy or !callingGuard and badAgent = nil
 	{
@@ -33,14 +40,14 @@ species securityGuard  skills: [moving]{
 	
 	reflex goToInfoPoint when: callingGuard and !busy
 	{
-		do goto target:infoPoint speed: 3.0;
+		do goto target:infoPoint speed: speed;
 	
 	}
 	
 	reflex catchAndKill when: badAgent!= nil and busy
 	{
 		//write 'got info about bad guest, going to find him';
-		do goto target:badAgent speed: 3.0;
+		do goto target:badAgent speed: speed;
 		
 		if(location distance_to(badAgent)<2){
 			
@@ -49,7 +56,12 @@ species securityGuard  skills: [moving]{
 				// cant kill ppl in auctions
 				if(!self.busyAuction){
 					write "Guest number " + self.name + " killed"; 
-					self.alive <-false;	
+					if(!myself.patient or self.warnings=1 ){
+						self.alive <-false;	
+					}
+					else if(self.warnings<1){
+						self.warnings<-self.warnings+1;
+					}
 				}			
 				
 			}
@@ -57,8 +69,42 @@ species securityGuard  skills: [moving]{
 			busy<-false;
 		}
 	}
+	// catching criminals, but only if we are not new at work or have a bad fitness level..
+	reflex seeCriminal when: !empty(Criminal at_distance 20) and !busy and !newAtWork and fitnessLevel>50{
+		write name + ' chasing a criminal!!';
+		chasingCriminal<-true;
+		busy<-true;
+		c<-first(Criminal at_distance 20);
+	}
+	// kill criminal if we catch him
+	reflex chaseCriminal when: chasingCriminal{
+		do goto target:c speed: speed;
+		if(location distance_to c< 2){
+			ask c{
+				self.alive<-false;
+			}
+			busy<-false;
+			chasingCriminal<-false;
+			c<-nil;
+		}
+	}
 	
 	aspect base {
-		draw cylinder(3.1,1)  color: color ;
+		// viewing radius for criminals
+		draw circle(20) color: #beige;
+		if(!newAtWork){
+			draw cylinder(3.1,1)  color: color ;
+			if(fitnessLevel<50){
+				draw ' unfit ' + fitnessLevel at: location+{-2,5} color: #black;
+			}
+		}
+		else{
+			draw cylinder(3.1,1)  color: color ;
+			draw ' New guy' color: #black;
+			draw ' fit ' + fitnessLevel at: location+{-2,5} color: #black;
+			
+		}
+		
+		
 	}
 }

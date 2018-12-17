@@ -39,6 +39,7 @@ species Auctioneer skills: [fipa, moving] {
 	int minValueForItem;
 	int newProposedPrice<-0;
 	int priceDropRate <- 50;
+	int generousity;
 	
 	Participant winner;
 	string nameOfWinner;
@@ -60,6 +61,7 @@ species Auctioneer skills: [fipa, moving] {
 				self.atAuction<-false;
 			}
 		}
+		agreedBuyers<-nil;
 		write name + ' beIdle ';
 		do wander;
 		write name + ' Wandering between auctions';
@@ -158,6 +160,9 @@ species Auctioneer skills: [fipa, moving] {
 			minValueForItem <-auctionItem[2]; 
 			activeProposedItem <- auctionItem[0];
 			activeProposedPrice <- auctionItem[1];
+			// generousity
+			activeProposedPrice <- activeProposedPrice - generousity;
+			
 			if(newProposedPrice != 0 and newProposedPrice >= minValueForItem){
 				activeProposedPrice <- newProposedPrice;
 			}		
