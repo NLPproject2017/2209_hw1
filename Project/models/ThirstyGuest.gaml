@@ -2,9 +2,22 @@
 model festival
 import "main.gaml"
 
-species guest skills: [moving] {
+species guest skills: [fipa,moving] {
+	//Participant
+	list<list> interestedToBuyItems;
+	list<string> interestedCategories;
+	string proposedItem;
+	int proposedPrice;
+	int willingPrice;
+	bool sold<-false;
+	
+	bool goingToAuction<-false;
+	bool atAuction<-false;
+	point auctionLocation<-nil;
+	//flyttar ihop guest och participant
+	//---
 	float size <- 1.0 ;
-	rgb color <- #blue;
+	rgb color<-#blue;
 	
 	store storeList;
 	
@@ -26,6 +39,8 @@ species guest skills: [moving] {
 	bool hungryOrThirsty<-true;
 	bool alive<-true;
 	
+	bool busyFOOD<-false; // controls so that not two different events can happen at the same time, auctions/go to a store
+	bool busyAuction <- false;
 	//TRAVELED
 	int movedDistance;
 	float x1;
@@ -39,7 +54,7 @@ species guest skills: [moving] {
 		do die ;
 	}
 		
-	reflex beIdle when: !thirsty and !hungry
+	reflex beIdle when: !thirsty and !hungry and !busyAuction
 	{
 		do wander;
 		
@@ -69,12 +84,23 @@ species guest skills: [moving] {
 		{					
 			color<-#red;
 		}
-		else{
+		else if(color=#green and !busyAuction){
 			color<-#blue;
+			busyFOOD<-true;
+		}
+		else if(busyAuction){
+			color<-#green;
 		}
 	}
-	reflex goToPoint when: ((hungry or thirsty) and currentStore=nil) or askAgain or storeEmpty
+	// RELATED TO HUNGER/THIRST
+	reflex notHungryThirstyAnymore when: !hungry and !thirsty and !busyAuction{
+		busyFOOD<-false;
+	}
+	reflex goToPoint when: (((hungry or thirsty) and currentStore=nil) or askAgain or storeEmpty) and !busyAuction
 	{
+		busyFOOD<-true;
+		// hunger/Thirst color
+		color<-#blue;
 		// calc distance traveled
 		x1<-location.x;
 		y1<-location.y;
@@ -153,7 +179,7 @@ species guest skills: [moving] {
 		}
 	}
 	// after we got the location of a store
-	reflex goToStore when: (hungry or thirsty) and currentStore!=nil and !askAgain{
+	reflex goToStore when: (hungry or thirsty) and currentStore!=nil and !askAgain and !busyAuction{
 			
 			if(storeToGoTo=nil){
 				//pick a random store from known to go to
@@ -221,6 +247,122 @@ species guest skills: [moving] {
 				storeToGoTo<- nil;
 			}
 	}
+	// RELATED TO AUCTIONS
+	// triggered when auction was canceled because of low price
+	reflex auctionAnouncements when: !empty(informs) and atAuction{
+		message informFromAuctioneer <-(informs at 0);
+		if(informFromAuctioneer.contents[3]='start'){
+		write name +'auctionAnouncements';
+		sold<-true;
+				// auction ended
+				atAuction<-false;
+				busyAuction<-false;
+				write name + 'left auction';
+	}
+	
+	}
+	reflex joinOrNot when: !empty(informs) and !goingToAuction and !busyAuction{
+		write name +'joinOrNot';
+		message informFromAuctioneer <-(informs at 0);
+		if(informFromAuctioneer.contents[3]='start'){
+			sold<-false;
+			busyAuction<-true;
+			
+			
+			if (interestedCategories contains informFromAuctioneer.contents[1]){
+				busyFOOD<-false;
+				write name +'1. respond_to_inform: joining';
+				do inform with: [message:: informFromAuctioneer, contents:: ['I accept']];
+				
+				// save to go, we are interested
+				auctionLocation <- informFromAuctioneer.contents[2];
+				//write " Location " + auctionLocation;
+				goingToAuction<-true;
+				// if not busy, can do other things
+			} else
+			{
+					write name +'1. respond_to_inform: NOT joining';
+				do inform with: [message:: informFromAuctioneer, contents:: ['I reject, not in my interest']];
+				//busy with auction stuff
+				
+				busyAuction<-false;
+			}	
+		}
+		
+		}
+		reflex goToAuction when: goingToAuction and !busyFOOD{
+			write name + ' 1.2 going to auction';
+			do goto target:auctionLocation speed: 3;
+			if(location distance_to auctionLocation<3){
+				//write name + ' 1.3 Arrived at auction';
+				goingToAuction<-false;
+				atAuction<-true;
+			}
+		}
+		reflex respond_to_proposal when: !empty(cfps) and atAuction and !busyFOOD{
+			write name + 'responded to proposal of price to buy item';
+			message proposalFromAuctioneer<- cfps at 0;
+			
+			proposedItem <- proposalFromAuctioneer.contents[1];
+			proposedPrice <- proposalFromAuctioneer.contents[3];
+			if(!(proposedItem='auction over')){
+
+			loop interestItem over: interestedToBuyItems {
+				if (interestItem[0] = proposedItem)
+				{
+					
+					willingPrice <- interestItem[1];
+					write name + "I'm interested in that item for price: "+ willingPrice;
+				}
+			}
+				// it does this twice and gets out of sync...
+			if (willingPrice>=proposedPrice){
+				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I agree to buy it ' + proposedItem + ' from ' +proposalFromAuctioneer.sender + '  for Price:', proposedPrice, name]];
+				write name + "I will buy it for that price!";
+			} 
+			else{
+				//do refuse with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy it. Willing To buy:', willingPrice]];
+				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy ' + proposedItem + ' from ' +proposalFromAuctioneer.sender + '. Willing To buy it for:', willingPrice]];
+				write name + "That is too much...";
+			}
+		}else{
+			sold<-true;
+					// auction ended
+					busyAuction<-false;
+					atAuction<-false;
+					write name + 'left auction price too low';
+		}
+		}
+		
+		reflex receive_accept_proposals when: !empty(accept_proposals) and !sold and !busyFOOD and busyAuction{
+			message m <-accept_proposals at 0; // needs to be emptied
+			write name + '!receive_accept_proposals';
+			if(m.contents[1]='winner'){
+				write name + " said: Hurray, I bought item it from " + m.sender;
+				//remove a from:accept_proposals;
+				sold<-true;
+				// auction ended
+				atAuction<-false;
+				busyAuction<-false;
+				write name + 'left auction';
+			}
+		}
+		reflex receive_reject_proposals when: !empty(reject_proposals) and busyAuction{
+			message m <-reject_proposals at 0; // needs to be emptied
+			string contentZero <-m.contents[0];
+			write name + '!receive_reject_proposals ' +contentZero ;
+			
+				if( contentZero= 'winnerfound'){
+					write name + " said: I didn't get it.. maybe next time" + m.sender;
+					//remove a from:accept_proposals;
+					sold<-true;
+					// auction ended
+					busyAuction<-false;
+					atAuction<-false;
+					write name + 'left auction';
+				}
+			
+		}
 	aspect base {
 		draw circle(size) color: color ;
 	}

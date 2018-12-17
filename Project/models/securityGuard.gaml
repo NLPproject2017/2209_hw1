@@ -46,8 +46,11 @@ species securityGuard  skills: [moving]{
 			
 			ask badAgent
 			{
-				write "Guest number " + self.name + " killed"; 
-				self.alive <-false;				
+				// cant kill ppl in auctions
+				if(!self.busyAuction){
+					write "Guest number " + self.name + " killed"; 
+					self.alive <-false;	
+				}			
 				
 			}
 			badAgent<-nil;
