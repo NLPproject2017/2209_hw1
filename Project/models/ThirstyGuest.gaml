@@ -249,7 +249,7 @@ species guest skills: [fipa,moving] {
 	}
 	// RELATED TO AUCTIONS
 	// triggered when auction was canceled because of low price
-	reflex auctionAnouncements when: !empty(informs) and atAuction{
+	/*reflex auctionAnouncements when: !empty(informs) and atAuction{
 		message informFromAuctioneer <-(informs at 0);
 		if(informFromAuctioneer.contents[3]='start'){
 		write name +'auctionAnouncements';
@@ -260,7 +260,7 @@ species guest skills: [fipa,moving] {
 				write name + 'left auction';
 	}
 	
-	}
+	}*/
 	reflex joinOrNot when: !empty(informs) and !goingToAuction and !busyAuction{
 		write name +'joinOrNot';
 		message informFromAuctioneer <-(informs at 0);
@@ -317,12 +317,12 @@ species guest skills: [fipa,moving] {
 			}
 				// it does this twice and gets out of sync...
 			if (willingPrice>=proposedPrice){
-				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I agree to buy it ' + proposedItem + ' from ' +proposalFromAuctioneer.sender + '  for Price:', proposedPrice, name]];
+				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I agree to buy it ' + proposedItem + ' from ' +proposalFromAuctioneer.sender + '  for Price:', proposedPrice, name, 'I buy']];
 				write name + "I will buy it for that price!";
 			} 
 			else{
 				//do refuse with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy it. Willing To buy:', willingPrice]];
-				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy ' + proposedItem + ' from ' +proposalFromAuctioneer.sender + '. Willing To buy it for:', willingPrice]];
+				do propose with: [ message :: proposalFromAuctioneer, contents :: ['I can\'t buy ' + proposedItem + ' from ' +proposalFromAuctioneer.sender + '. Willing To buy it for:', willingPrice, name, 'cant buy']];
 				write name + "That is too much...";
 			}
 		}else{
@@ -336,8 +336,10 @@ species guest skills: [fipa,moving] {
 		
 		reflex receive_accept_proposals when: !empty(accept_proposals) and !sold and !busyFOOD and busyAuction{
 			message m <-accept_proposals at 0; // needs to be emptied
+			string contentsOne <- m.contents[1];
 			write name + '!receive_accept_proposals';
-			if(m.contents[1]='winner'){
+			write name + '! ' +contentsOne ;
+			if(contentsOne='winner'){
 				write name + " said: Hurray, I bought item it from " + m.sender;
 				//remove a from:accept_proposals;
 				sold<-true;
@@ -346,20 +348,39 @@ species guest skills: [fipa,moving] {
 				busyAuction<-false;
 				write name + 'left auction';
 			}
-		}
-		reflex receive_reject_proposals when: !empty(reject_proposals) and busyAuction{
-			message m <-reject_proposals at 0; // needs to be emptied
-			string contentZero <-m.contents[0];
-			write name + '!receive_reject_proposals ' +contentZero ;
-			
-				if( contentZero= 'winnerfound'){
-					write name + " said: I didn't get it.. maybe next time" + m.sender;
+			/*else if(contentsOne=nil){
+				write name + " said: ok, no one got it" + m.sender;
 					//remove a from:accept_proposals;
 					sold<-true;
 					// auction ended
 					busyAuction<-false;
 					atAuction<-false;
 					write name + 'left auction';
+			}*/
+		}
+		reflex receive_reject_proposals when: !empty(reject_proposals) and busyAuction{
+			message m <-reject_proposals at 0; // needs to be emptied
+			string contentZero <-m.contents[0];
+			write name + '!receive_reject_proposals ' +contentZero ;
+			
+			if(contentZero='winnerfound'){
+				write name + " said: Someone else bought it.. leaving " + m.sender;
+				//remove a from:accept_proposals;
+				sold<-true;
+				// auction ended
+				atAuction<-false;
+				busyAuction<-false;
+				write name + 'left auction';
+			}
+				if( contentZero= 'not sold yet'){
+					write name + ' OK, waiting for next round...';
+					/*write name + " said: I didn't get it.. maybe next time" + m.sender;
+					//remove a from:accept_proposals;
+					sold<-true;
+					// auction ended
+					busyAuction<-false;
+					atAuction<-false;
+					write name + 'left auction';*/
 				}
 			
 		}

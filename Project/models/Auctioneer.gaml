@@ -41,17 +41,34 @@ species Auctioneer skills: [fipa, moving] {
 	int priceDropRate <- 50;
 	
 	Participant winner;
+	string nameOfWinner;
+	bool oneWinnerSelected<-false;
+	int notifiedMinusAccepted<-0;
 	
 	reflex beIdle when: auctionClosed
 	{
+		// tell people that auction is now closed
+		// after rejecting or accepting everyone when a winner is found, tell people that the auction is over
+	 	// including winner even if it already left anyway
+		loop i over: agreedBuyers{
+			ask i{
+				write name + 'asked i to leave';
+				//remove a from:accept_proposals;
+				self.sold<-true;
+				// auction ended
+				self.busyAuction<-false;
+				self.atAuction<-false;
+			}
+		}
 		write name + ' beIdle ';
 		do wander;
 		write name + ' Wandering between auctions';
 		// randomly start a new auction
-		int random <- rnd(0,20);
+		int random <- rnd(0,50); // should be a time not random
 		write 'random ' + random;
 		if(random=1){
-			write name + 'Started NEW auction: informingInProgress'+ informingInProgress + ' auctionActive: '+auctionActive + 'sellingItems: '+ sellingItems;
+			//write name + 'Started NEW auction: informingInProgress'+ informingInProgress + ' auctionActive: '+auctionActive + 'sellingItems: '+ sellingItems;
+			// a new one will start when conditions are met.. like new items are available
 			startNew<-true;
 		}
 	}
@@ -59,21 +76,22 @@ species Auctioneer skills: [fipa, moving] {
 	
 	// inform first participant of starting auction, see if it wants to join
 	reflex inform_of_auction when: !auctionActive and !empty(sellingItems) and !informingInProgress and startNew{
-		write name + 'Agreed buyers at start of auction: ' +length(agreedBuyers);
+		//write name + 'Agreed buyers last auction: ' +length(agreedBuyers);
 		//reset
 		agreedBuyers<-nil;
 		//reset
 		allArrived<-false;
 		winnerfound<-false;
+		winner<-nil;
+		oneWinnerSelected<-false;
+		notifiedMinusAccepted<-0;
 		write 'inform_of_auction';
 		write name + " informs about an auction! Selling: " + sellingItems + ' items ';
 		
 		auctionClosed<-false;
 		auctionActive<-true;
-		//guest p<-guest at 0;
 		string category <-first(selectCategories);
 	
-		//do start_conversation ( to : [p], protocol : 'fipa-inform', performative : 'inform', contents : ['Auction open at: '+name+' - wanna buy something on Category:', category,location] );
 		// go to read who wanted to join
 		informingInProgress<-true;
 		loop i over: guest{
@@ -84,7 +102,6 @@ species Auctioneer skills: [fipa, moving] {
 	}
 	// trigger when guests arrive not woking
 	reflex checkArrivedGuests when: !empty(guest at_distance 3) and !allArrived{
-		//write 'checking arrivals ' + guest at_distance 4+'/'+length(agreedBuyers);
 		if(length(guest at_distance 3)=length(agreedBuyers)){
 			write 'alla arrived true';
 			allArrived<-true;
@@ -99,21 +116,15 @@ species Auctioneer skills: [fipa, moving] {
 			numberOfPplResponded<-numberOfPplResponded+1;
 			if(a.contents=['I accept']){
 				add a.sender to: agreedBuyers;
-				//write  name + ': '+ a.sender+ ' added to list of interested buyers ';
 			} else{
 				//write  name + ': '+ a.sender+ ' rejected participation.';
 			}
-			 //+a.contents[1];
 		}
 		
 		}
-		//write 'length(guest at_distance 3)' + length(guest at_distance 3);
-		//write 'length(agreedBuyers)' + length(agreedBuyers);
-		//write 'numberOfPplResponded: '+numberOfPplResponded;
 			if (length(agreedBuyers)!=0)
 			{
 				write name +": "+ length(agreedBuyers) +' people joined auction';
-				//informingInProgress<-false;
 				// to go on to propose a price for the item
 				ToBeInformed<-true;
 				// auction is running
@@ -121,7 +132,6 @@ species Auctioneer skills: [fipa, moving] {
 			}
 			else {
 				write name + ":No people joined auction. Auction Closed!";
-				//informingInProgress<-false;
 				// then auction is canceled
 				auctionClosed<-true;
 				// and not active
@@ -175,20 +185,24 @@ species Auctioneer skills: [fipa, moving] {
 		write name + 'receive_propose_messages';
 		write name + ' propose-message: '+m;
 	if (!(numberOfPeopleProposed = length(agreedBuyers) and sellingItems contains auctionItem))
-				{
-		//bool winnerfound<-false;
+	{
+			// if we didnt sell the item yet
 			if (sellingItems contains auctionItem)
 			{
 				numberOfPeopleProposed <-numberOfPeopleProposed + 1;
 				//write agent(p.sender).name + ' says:  ' + p.contents;
 				int participatPrice <- m.contents[1];
+				// if no winner yet
 				if ( participatPrice >= activeProposedPrice and !winnerfound) {
-					write '\t' + name + ' sends a accept_proposal message to ' + m.sender;
+					// save winner until last
+					winner <- m;
+					write '\t' + name + ' sends a accept_proposal message to ' +winner ;
 					do accept_proposal with: [ message :: m, contents :: ['The ' + activeProposedItem + 'is yours.', 'winner']];
 					// don want to sell same thing again
 					remove auctionItem from: sellingItems;
-					string nameOfWinner<-m.contents[2];
-					winner <- m.sender;
+					nameOfWinner<-m.contents[2];
+					
+					write name + ' saved winnername ' + nameOfWinner;
 					// we found a winner for item
 					winnerfound<-true;
 					sold<-true;
@@ -197,27 +211,25 @@ species Auctioneer skills: [fipa, moving] {
 					// and we close
 					auctionClosed<-true;
 					
-					// notify winner
-					//do accept_proposal with: [ message :: m, contents :: ['Too low price or Too late! Not interested in your proposal for ' + activeProposedItem, 'winner'] ];
-					
 				}
-				if(winnerfound){
-					loop rej over: reject_proposals{
-						do reject_proposal with: [ message :: rej, contents :: ['winnerfound'] ];
-					}//do start_conversation with: [ to :: list( agreedBuyers), protocol :: 'fipa-contract-net', performative :: 'cfp', 
-				//contents :: ['winnerfound']];
-				} else{
+				write name + 'before we should only send to losers winner= ' + nameOfWinner + ' current person ' + m.contents[2];
+				// even if first proposal is not winner needs to reject correctly
+				write name + ' winnerfound and m.contents[3] = cant buy ' + (m.contents[3] = 'cant buy' + ' winnerfound ' + winnerfound);
+				// go through all but skip winner and send last
+				if(m.contents[3] = 'I buy' and !oneWinnerSelected){
+					oneWinnerSelected<-true;
+					// we skip
+				}
+				
+				else{
+					// reject everyone else
 					write 'new round triggered...';
 					numberOfPeopleRejected<-numberOfPeopleRejected + 1;
 					write '\t' + name + ' rejects proposal from ' + m.sender;
 					do reject_proposal with: [ message :: m, contents :: ['Too low price or Too late! Not interested in your proposal for ' + activeProposedItem, 'not sold yet'] ];
-				
 				}
-				
+				}
 			}
-
-		}
-		
 				// if everyone proposed and item is still in list, it didnt sell, start new round!
 				if (numberOfPeopleProposed = length(agreedBuyers) and sellingItems contains auctionItem)
 				{
@@ -241,11 +253,19 @@ species Auctioneer skills: [fipa, moving] {
 							auctionActive<-false;
 							//ToBeInformed<-true;
 							newProposedPrice<-0;
-							winner <- nil;
+							//winner <- nil; // winner needs to be saved for next lap
+							// cant be accept message...  everyone was alrady rejected
 							
-								//do propose with: [ message :: g, contents :: ['Too low price or Too late! Not interested in your proposal for ' + activeProposedItem, 'auction over'] ];
-						
-							
+							loop i over: agreedBuyers{
+								ask i{
+									write name + 'asked i to leave';
+									//remove a from:accept_proposals;
+									self.sold<-true;
+									// auction ended
+									self.busyAuction<-false;
+									self.atAuction<-false;
+									}
+								}
 						}else{
 							// trigger a new round for same item if not too cheap
 							ToBeInformed<-true;		
@@ -253,8 +273,7 @@ species Auctioneer skills: [fipa, moving] {
 							write name + " says: NEW Round!"; // Selling " + activeProposedItem + " for price: " + 	newProposedPrice;
 						}
 					}
-					
-					
+
 					if (winner != nil){
 						remove auctionItem from: sellingItems;
 						write "Auction item " + auctionItem + " is sold. ";
@@ -262,7 +281,6 @@ species Auctioneer skills: [fipa, moving] {
 						auctionItem<-nil;
 						ToBeInformed<-true;
 						newProposedPrice<-0;
-						winner <- nil;
 						// one item sold, close auction until next item up for sale
 						auctionClosed<-true;
 						auctionActive<-false;
@@ -271,24 +289,13 @@ species Auctioneer skills: [fipa, moving] {
 					numberOfPeopleProposed <-0;
 					numberOfPeopleRejected <-0;
 				}
-				else{
-					// one round? item sold, close auction until next item up for sale
-					//auctionClosed<-true;
-				}
 	}
 	// read received agrees
 	reflex read_agree_message when: !(empty(agrees)){
 		write name +'read_agree_message';
-		//write 'Auctioneer: read_agree_message';
-		//loop a over: agrees{
-			//write ''+ a.sender+ ' added to list of interested buyers: '; //+a.contents[1];
-		//}
 	}
 	reflex read_fail_messages when: !(empty(failures)){
 		write 'read_fail_messages';
-		//loop a over: failures{
-		//	write ''+ a.sender+ ' replied with failure: '; //+a.contents[1];
-		//}
 	}
 	aspect base {
 		draw circle(2) color: #brown ;
