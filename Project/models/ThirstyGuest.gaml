@@ -30,6 +30,7 @@ species guest skills: [fipa,moving] {
 	int anotherStoreChance<-2;
 	int n <- rnd(100);
 	int warnings<-0;
+	int badChance <-70;
 
 	bool thirsty <-false;
 	bool hungry<-false;
@@ -39,6 +40,9 @@ species guest skills: [fipa,moving] {
 	bool storeEmpty<-false;
 	bool hungryOrThirsty<-true;
 	bool alive<-true;
+	bool isPushed<-false;
+	bool isAgitated<-false;
+	bool alreadyAgitated<-false;
 	
 	bool busyFOOD<-false; // controls so that not two different events can happen at the same time, auctions/go to a store
 	bool busyAuction <- false;
@@ -81,7 +85,7 @@ species guest skills: [fipa,moving] {
 	}
 	reflex randomlyBeBad{
 		// if info sees me i will be killed by guard
-		if (rnd(chance+ 70)=5)
+		if (rnd(chance+ badChance)=5)
 		{					
 			color<-#red;
 		}
@@ -91,6 +95,27 @@ species guest skills: [fipa,moving] {
 		}
 		else if(busyAuction){
 			color<-#green;
+		}
+	}
+	// RELATED TO interactions at the info centre
+	// if pushed get agitated and increase how likely we are to go bad
+	reflex getAgitated when: isPushed and !alreadyAgitated{
+		isAgitated<-true;
+		isPushed<-false;
+	}
+	reflex agitated when: isAgitated{
+		
+		if(!alreadyAgitated){
+			badChance<-5;
+			color<-#cyan;
+			alreadyAgitated<-true;
+		}
+		// stop being agitated after a random amount of time
+		if(rnd(50)=25){
+			isAgitated<-false;
+			color<-#blue;
+			alreadyAgitated<-false;
+			badChance<-70;
 		}
 	}
 	//reflex gotBadInfluence when: 
@@ -118,6 +143,20 @@ species guest skills: [fipa,moving] {
 			float newDistance <-sqrt(((x2-x1)^2)+(y2-y1)^2);
 			movedDistance <- movedDistance + newDistance;
 			//write "Guest: "+n+" total distance traveled: "+movedDistance;
+			
+			// interact with other guests if they are there // push them if you are bad
+			if(!empty(guest at_distance 10)){ //and color=#red){
+				loop g over: guest at_distance 10{
+					//useElbows
+					ask g{
+						if(!self.isPushed){
+							write self.name + ' PUSHED ' + myself.name;
+							self.isPushed<-true;
+							myself.isPushed<-true;
+						}
+					}
+				}
+			}
 			
 			ask info at_distance 7.1
 			{
@@ -387,7 +426,9 @@ species guest skills: [fipa,moving] {
 			
 		}
 	aspect base {
-		draw circle(size) color: color ;
+		
+			draw circle(size) color: color ;
+		
 		draw ' !: ' + warnings at: location+{-2,5} color: #black;
 	}
 } 
