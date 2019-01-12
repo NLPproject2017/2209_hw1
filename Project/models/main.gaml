@@ -20,6 +20,9 @@ import "Criminal.gaml"
 //import "onemore.gaml"
 
 global {
+	//image stores
+	file infoIMG <- image_file("../images/info.png");
+	
 	//Thirsty guests, stores, infopoint, guard
 	int guests_init <- 10;
 	int info_init<-1;
@@ -41,6 +44,7 @@ global {
 	list festivalWorkers;
 	
 	init {
+		
 		create guest number: guests_init{
 			//for challenge part
 			int index <- rnd(1,2);
@@ -106,6 +110,7 @@ global {
 			}
 		}
 		create store number: stores_init{
+			
 			point p <-{rnd(75),rnd(75)};
 			location<-p;
 			add location to:storesGlobal;
@@ -171,6 +176,9 @@ global {
 		
 		
 }
+aspect base {
+		draw ' Number of guests in field: ' + length(guest) at: {0,0} color: #purple size: 12;
+	}
 }
 experiment main type: gui {
 	parameter "Guests: " var: guests_init min: 1 max: 100 category: "Guests" ;
@@ -178,7 +186,9 @@ experiment main type: gui {
 	parameter "Workers: " var: workers_init min: 1 max: 10 category: "Workers" ;
 	
 	output {
-		display main_display {
+		
+		display main_display background:#white {
+			
 			species securityGuard aspect: base;
 			species guest aspect: base ;
 			species info aspect: base;
@@ -187,6 +197,11 @@ experiment main type: gui {
 			
 			species Auctioneer aspect: base ;
 			species Criminal aspect: base ;
+			
+			graphics "layer1" {
+                draw 'Guests in field: '+length(guest) at:{5,5} color:#cornflowerblue;
+                
+            }
 		}
 	}
 }

@@ -116,7 +116,7 @@ species info{
 
 	
  aspect base {
-		draw square(size) color: color ;
+		draw infoIMG at: location size: 7;
 		point firstOne <-first(emptyStores);
 		draw 'Empty stores: ' at: location+{-2,4} color: #black;
 		

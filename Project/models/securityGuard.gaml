@@ -53,8 +53,8 @@ species securityGuard  skills: [moving]{
 			
 			ask badAgent
 			{
-				// cant kill ppl in auctions
-				if(!self.busyAuction){
+				// cant kill ppl in auctions or who are going to report an empty store
+				if(!self.busyAuction or self.storeEmpty){
 					write "Guest number " + self.name + " killed"; 
 					if(!myself.patient or self.warnings=1 ){
 						self.alive <-false;	
@@ -91,7 +91,7 @@ species securityGuard  skills: [moving]{
 	
 	aspect base {
 		// viewing radius for criminals
-		draw circle(20) color: #beige;
+		draw circle(20) color: #beige ;
 		if(!newAtWork){
 			draw cylinder(3.1,1)  color: color ;
 			if(fitnessLevel<50){
