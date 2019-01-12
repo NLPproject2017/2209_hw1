@@ -38,13 +38,21 @@ global {
 	//auctioneer
 	list<list> thingsForSale<-[['Phone', 'Personal'],['TV', 'HouseholdItems'],['Car', 'HouseholdItems'],['Watch', 'Personal']];
 	list<string> categories<-['Personal','HouseholdItems'];
+	list festivalWorkers;
 	
 	init {
 		create guest number: guests_init{
 			//for challenge part
 			int index <- rnd(1,2);
+			starterBadChance<-rnd(50,100);
 			add categories[index-1] to: interestedCategories;
-				
+			resilience <- rnd(1); // 0 is non-resilient 1 is resilient
+			if(resilience){
+				chance<-40; // less likely to get thirsty or hungry
+			}
+			else{
+				chance <-20;
+			}
 			loop i over: thingsForSale{
 				if (interestedCategories contains i[1]){
 					list willingBuyItem<- [i[0], 200 + rnd(300)];
@@ -105,21 +113,31 @@ global {
   			drinkAvailable<-5; //--------------
   			n<-"Store "+rnd(stores_init); //---------
 		}
-		create info number: info_init
-		{ 
-  			location <- {50,50};
-  			stores<-storesGlobal;
-		}
+		
 		create festivalWorker number: workers_init{
-			energyLevel<-100;
+			customName<-rnd(1000);
+			energyLevel<-rnd(50,100); // some people have less energy than others
+			energyStartValue<-energyLevel; // to remember our energy after depletion
 			energyRegeneration<-1; 
 			int strength<-rnd(10);
+			AgitationLevel<-rnd(100);
+			add customName to: festivalWorkers; // save employees
 			if(strength>6){
 				strong<-true;
 			}
 			else{
 				strong<-false;
 			}
+		}
+		create info number: info_init
+		{ 
+			list createEmployedWorkers;
+			loop i over: festivalWorkers{
+				add 0 to: workerWarnings;
+			}
+			employedWorkers<-festivalWorkers;
+  			location <- {50,50};
+  			stores<-storesGlobal;
 		}
 		create Auctioneer number: auctioneers_init {
 			n<-'Auctioneer '+rnd(100);

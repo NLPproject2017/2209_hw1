@@ -13,6 +13,8 @@ species guest skills: [fipa,moving] {
 	
 	bool goingToAuction<-false;
 	bool atAuction<-false;
+	
+	bool resilience;
 	point auctionLocation<-nil;
 	//flyttar ihop guest och participant
 	//---
@@ -26,11 +28,11 @@ species guest skills: [fipa,moving] {
 	
 	list<point> currentStores; //list of all stores guest knows of
 	
-	int chance <- 20;
+	int chance;
 	int anotherStoreChance<-2;
 	int n <- rnd(100);
 	int warnings<-0;
-	int badChance <-70;
+	int starterBadChance;
 
 	bool thirsty <-false;
 	bool hungry<-false;
@@ -85,7 +87,7 @@ species guest skills: [fipa,moving] {
 	}
 	reflex randomlyBeBad{
 		// if info sees me i will be killed by guard
-		if (rnd(chance+ badChance)=5)
+		if (rnd(chance+ starterBadChance)=5)
 		{					
 			color<-#red;
 		}
@@ -106,7 +108,7 @@ species guest skills: [fipa,moving] {
 	reflex agitated when: isAgitated{
 		
 		if(!alreadyAgitated){
-			badChance<-5;
+			starterBadChance<-starterBadChance/10;
 			color<-#cyan;
 			alreadyAgitated<-true;
 		}
@@ -115,7 +117,7 @@ species guest skills: [fipa,moving] {
 			isAgitated<-false;
 			color<-#blue;
 			alreadyAgitated<-false;
-			badChance<-70;
+			starterBadChance<-starterBadChance;
 		}
 	}
 	//reflex gotBadInfluence when: 

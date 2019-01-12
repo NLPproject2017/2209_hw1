@@ -8,6 +8,8 @@
 model festivalWorker
 import "main.gaml"
 species festivalWorker skills: [moving]{
+	string customName;
+	
 	float size <- 2.0 ;
 	rgb color <- #purple;
 	point storeToGoTo<-nil;
@@ -15,12 +17,34 @@ species festivalWorker skills: [moving]{
 	bool rest<-false;
 	bool strong;
 	int energyLevel;
+	int energyStartValue;
 	int energyRegeneration;
 	
+	int receivedWarnings<-0;
+	int AgitationLevel;
+	int AgitationLevelCounter<-0;
+	bool Agitated<-false;
+	bool alive<-true;
 	
+	
+	reflex agitated when: Agitated{
+		color<-#red;
+		size<-3.0;
+	}
+	reflex die when: !alive  {
+		write 'Worker: ' + name + ' says: You cant fire me! I QUIT!';
+		do die ;
+	}
 	reflex calledToInfo when:light and storeToGoTo = nil and !rest{
 		//write 'energy -1 called to info';
 		energyLevel<-energyLevel-1;
+		
+		if(AgitationLevelCounter<AgitationLevel){
+			AgitationLevelCounter<-AgitationLevelCounter+1;
+		}
+		else if(AgitationLevelCounter=AgitationLevel){
+			Agitated <-true;
+		}
 		
 		do goto target:infoPoint speed: 3.0;
 	
@@ -54,6 +78,14 @@ species festivalWorker skills: [moving]{
 		if(energyLevel>=1){
 			energyLevel<-energyLevel-1;
 		}
+		
+		if(AgitationLevelCounter<AgitationLevel){
+			AgitationLevelCounter<-AgitationLevelCounter+1;
+		}
+		else if(AgitationLevelCounter=AgitationLevel){
+			Agitated <-true;
+		}
+		
 		do goto target:storeToGoTo speed: 3.0;
 	
 		if(location distance_to(storeToGoTo)<2){
@@ -81,6 +113,14 @@ species festivalWorker skills: [moving]{
 		if(energyLevel>=1){
 			energyLevel<-energyLevel-1;
 		}
+		
+		if(AgitationLevelCounter<AgitationLevel){
+			AgitationLevelCounter<-AgitationLevelCounter+1;
+		}
+		else if(AgitationLevelCounter=AgitationLevel){
+			Agitated <-true;
+		}
+		
 		do goto target:infoPoint speed: 3.0;
 		
 	
@@ -99,11 +139,20 @@ species festivalWorker skills: [moving]{
 	reflex idle when: (!light and !delivered and storeToGoTo=nil) or rest{
 		//write 'rest ' + rest;
 		do wander;
-		if(rest){
+		if(rest){ // only rests when out of energy 
 			// rest and increase energy level
 			energyLevel<-energyLevel+energyRegeneration;
-			if(energyLevel>=100){
-				energyLevel<-100;
+			if(AgitationLevelCounter>0 and AgitationLevelCounter<=AgitationLevel){ // recover agitation
+				AgitationLevelCounter<-AgitationLevelCounter-1;
+			}
+			if(AgitationLevelCounter<AgitationLevel){
+				Agitated<-false;
+				color<-#purple;
+				size<-2.0;
+			}
+			
+			if(energyLevel>=energyStartValue){
+				energyLevel<-energyStartValue;
 				//write 'FULLY RESTED, REST FALSE';
 				rest<-false;
 			}
@@ -117,6 +166,9 @@ species festivalWorker skills: [moving]{
 	
 	aspect base {
 		draw circle(size) color: color ;
+		draw 'Agitation:  '+AgitationLevelCounter + "/"+AgitationLevel at: location+{2,-8} color: #red;
+		draw 'Warnings:  '+receivedWarnings at: location+{2,-6} color: #red;
+		
 		if(strong){
 			draw ' Strong ' at: location+{-2,5} color: #black;
 		}
@@ -126,7 +178,7 @@ species festivalWorker skills: [moving]{
 		if(storeToGoTo!=nil){
 			draw 'To: '+ storeToGoTo at: location+{2,-4} color: #black;
 		}
-		if(energyLevel>50){ draw 'Energy level:  '+energyLevel at: location+{2,-2} color: #green;}
+		if(energyLevel>energyStartValue/2){ draw 'Energy level:  '+energyLevel at: location+{2,-2} color: #green;}
 		else{
 			draw 'Energy level:  '+energyLevel at: location+{2,-2} color: #red;
 		}

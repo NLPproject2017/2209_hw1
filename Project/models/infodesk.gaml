@@ -17,6 +17,8 @@ species info{
 	
 	int badGuestNumber;
 	list badGuests;
+	list employedWorkers;
+	list<int> workerWarnings;
 	
 	//request festivalworker to fill inventories when one is empty
 	reflex requestFillStores when: !(length(emptyStores)=0){
@@ -68,6 +70,42 @@ species info{
 	}
 	reflex noBadGuestsNeedHandling when: empty(badGuests){
 		callingGuard <- false;
+	}
+	
+	reflex badWorker when: !empty(festivalWorker at_distance 3){ // when we see an agitated festival worker
+	
+		ask festivalWorker at_distance 1{
+			if(self.Agitated){
+				write 'AGITATED WORKER IN RANGE!!!!!!!!!!!!!';
+				//write 'Number of employed workers: ' + length(festivalWorkers);
+					int counter<-0;
+					loop workerName over: myself.employedWorkers{
+						
+						//write '';
+						//write 'self.customName ' + self.customName + ' VS ' + workerName;
+						//write '';
+						if(workerName=self.customName){ // if current worker in list is the agitated one
+						write 'FOUND WORKER IN MY LIST!!!!!!!!!!!!!';
+							//loop warnings over: workerWarnings{
+							write ' counter: ' + counter + ' Value: ' + myself.workerWarnings[counter];
+								if(myself.workerWarnings[counter]>=3){ // if it already received 3 warnings
+								write '!!             FIRED WORKER               !!';
+									self.alive<-false; // fire it
+									myself.workerWarnings[counter]<--1; // i.e dead
+								}
+								else if(myself.workerWarnings[counter]<3 and myself.workerWarnings[counter]>=0){
+									// give warning
+									myself.workerWarnings[counter]<-myself.workerWarnings[counter]+1; // keep track myself
+									self.receivedWarnings<-self.receivedWarnings+1;
+									write 'GAVE WARNING TO WORKER!!!!!!!!!!!!';
+								}
+							//}
+						}
+						counter<-counter+1;
+					}
+				
+			}
+		}
 	}
 		
 	/*reflex requestAWorker when: (length(emptyStores)>0)// and !handled{
