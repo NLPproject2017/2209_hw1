@@ -33,6 +33,7 @@ species guest skills: [fipa,moving] {
 	int n <- rnd(100);
 	int warnings<-0;
 	int starterBadChance;
+	int agitatedAtCycle;
 
 	bool thirsty <-false;
 	bool hungry<-false;
@@ -102,18 +103,24 @@ species guest skills: [fipa,moving] {
 	// RELATED TO interactions at the info centre
 	// if pushed get agitated and increase how likely we are to go bad
 	reflex getAgitated when: isPushed and !alreadyAgitated{
+		agitatedAtCycle <- cycle;
 		isAgitated<-true;
 		isPushed<-false;
 	}
+	
+	reflex end_experiment when: cycle=1440 or cycle = 2880{
+		write "By the end of the day, warning are removed";
+		warnings<-0; 
+		}
+
 	reflex agitated when: isAgitated{
-		
 		if(!alreadyAgitated){
 			starterBadChance<-starterBadChance/10;
 			color<-#cyan;
 			alreadyAgitated<-true;
 		}
 		// stop being agitated after a random amount of time
-		if(rnd(50)=25){
+		if(cycle = agitatedAtCycle + 10){
 			isAgitated<-false;
 			color<-#blue;
 			alreadyAgitated<-false;
@@ -147,8 +154,8 @@ species guest skills: [fipa,moving] {
 			//write "Guest: "+n+" total distance traveled: "+movedDistance;
 			
 			// interact with other guests if they are there // push them if you are bad
-			if(!empty(guest at_distance 10)){ //and color=#red){
-				loop g over: guest at_distance 10{
+			if(!empty(guest at_distance 5)){ //and color=#red){
+				loop g over: guest at_distance 5{
 					//useElbows
 					ask g{
 						if(!self.isPushed){

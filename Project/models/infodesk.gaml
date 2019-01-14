@@ -32,9 +32,9 @@ species info{
 	reflex allStoresEmpty when: length(emptyStores)=stores_init{
 		write "Food And Drink are finished at stores. Please come back later."; 	
 	}
-	reflex guestsInViewingDistance when: !empty(guest at_distance 7) {
+	reflex guestsInViewingDistance when: !empty(guest at_distance 5) {
 		// if we see a guest do something bad, call security
-		list glist<-guest at_distance 7;
+		list glist<-guest at_distance 5;
 		loop g over: glist{
 			ask g
 			{
@@ -88,7 +88,7 @@ species info{
 						write 'FOUND WORKER IN MY LIST!!!!!!!!!!!!!';
 							//loop warnings over: workerWarnings{
 							write ' counter: ' + counter + ' Value: ' + myself.workerWarnings[counter];
-								if(myself.workerWarnings[counter]>=3){ // if it already received 3 warnings
+								if(myself.workerWarnings[counter]>=10){ // if it already received 3 warnings
 								write '!!             FIRED WORKER               !!';
 									self.alive<-false; // fire it
 									myself.workerWarnings[counter]<--1; // i.e dead

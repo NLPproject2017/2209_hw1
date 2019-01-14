@@ -21,20 +21,21 @@ import "Criminal.gaml"
 
 global {
 	//image stores
-	file infoIMG <- image_file("../images/info.png");
+	file infoIMG <- image_file("../../images/info.png");
 	
 	//Thirsty guests, stores, infopoint, guard
-	int guests_init <- 10;
+	int guests_init <- 50;
 	int info_init<-1;
 	int stores_init<-4;
-	int workers_init<-1;
+	int workers_init<-2;
 	int auctioneers_init<-1;
 	int participants_init<-1;
 	int criminals_init<-1;
 	
 	point infoPoint<-{50,50};
 	
-	list<point> storesGlobal;
+	list<point> storesGlobal_init <- [{10,10}, {10,80}, {80,10}, {80,80}];
+	list<point> storesGlobal; 
 	bool callingGuard <-false;
 	bool light<-false; //light is turned on when info center wants the worker to come
 	
@@ -43,12 +44,22 @@ global {
 	list<string> categories<-['Personal','HouseholdItems'];
 	list festivalWorkers;
 	
+	
+	//Monitor: 
+	int nb_people_agitated_init<-0;
+	int current_hour update: (cycle / 60) mod 24;
+	int nb_people_agitated <- nb_people_agitated_init update: guest count (each.isAgitated);
+	int nb_people_alive <-  guests_init update: guest count (each.alive);
+	//int nb_people_not_infected <- nb_people - nb_infected_init update: nb_people - nb_people_infected;
+	float agitation_rate update: nb_people_agitated/guests_init;
+	
+	
 	init {
 		
 		create guest number: guests_init{
 			//for challenge part
 			int index <- rnd(1,2);
-			starterBadChance<-rnd(50,100);
+			starterBadChance<-rnd(70,100);
 			add categories[index-1] to: interestedCategories;
 			resilience <- rnd(1); // 0 is non-resilient 1 is resilient
 			if(resilience){
@@ -101,7 +112,7 @@ global {
 			else{
 				speed<-3.0;
 			}
-			int patienceLevel<-rnd(1);
+			int patienceLevel<-rnd(2);
 			if(patienceLevel=1){
 				patient<-true;
 			}
@@ -111,11 +122,13 @@ global {
 		}
 		create store number: stores_init{
 			
-			point p <-{rnd(75),rnd(75)};
+			//point p <-{rnd(75),rnd(75)};
+			point p <- first(storesGlobal_init);
 			location<-p;
+			remove location from:storesGlobal_init;
 			add location to:storesGlobal;
-			foodAvailable <- 2; //--------------
-  			drinkAvailable<-5; //--------------
+			foodAvailable <- 10; //--------------
+  			drinkAvailable<-15; //--------------
   			n<-"Store "+rnd(stores_init); //---------
 		}
 		
@@ -174,11 +187,17 @@ global {
 			//write name + " interested categories: "+ interestedCategories +" and willing to buy items:" + interestedToBuyItems;
 		}*/
 		
+		//End the experiment after 3 days (1 minut = 1 cycle) = 4320
 		
 }
 aspect base {
 		draw ' Number of guests in field: ' + length(guest) at: {0,0} color: #purple size: 12;
 	}
+	
+	reflex end_experiment when: cycle=4320{
+		write "experiement ended";
+		do pause;
+		}
 }
 experiment main type: gui {
 	parameter "Guests: " var: guests_init min: 1 max: 100 category: "Guests" ;
@@ -187,7 +206,35 @@ experiment main type: gui {
 	
 	output {
 		
-		display main_display background:#white {
+		monitor "Number of guests alive" value: nb_people_alive;
+		monitor "Current hour" value: current_hour;
+		monitor "Agitation rate" value: agitation_rate;
+		
+		
+		display chart refresh:every(20) {
+			chart "Monitoring of agitated guests over time:" type: series {
+				data "Numer of people Alive: " value: nb_people_alive color: #blue;
+				data "Numer of people agitated: " value: nb_people_agitated color: #green;
+				//data "Agitation rate" value: agitation_rate color: #red;
+			}
+			
+//			chart "Monitoring of agitated guests over time:" type: series
+//			{
+//			//data "Numer of people Alive: " value: nb_people_alive color: #blue;
+//			//data "Numer of people agitated: " value: nb_people_agitated color: #green;
+//				data "Agitation rate" value: agitation_rate color: # red;
+//			}
+		}
+		
+//		display chart refresh:every(20) {
+//			
+//			chart "Monitoring of agitated guests over time:" type: series {
+//				//data "Numer of people Alive: " value: nb_people_alive color: #blue;
+//				//data "Numer of people agitated: " value: nb_people_agitated color: #green;
+//				data "Agitation rate" value: agitation_rate color: #red;
+//			}
+//		}
+			display main_display background:#white {
 			
 			species securityGuard aspect: base;
 			species guest aspect: base ;
