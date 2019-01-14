@@ -56,7 +56,7 @@ species securityGuard  skills: [moving]{
 				// cant kill ppl in auctions or who are going to report an empty store
 				if(!self.busyAuction or self.storeEmpty){
 					write "Guest number " + self.name + " killed"; 
-					if((!myself.patient and self.warnings=2) or (self.warnings=3)){
+					if((!myself.patient and self.warnings=2) or (self.warnings>2)){
 						self.alive <-false;	
 					}
 					else if(self.warnings<=3){

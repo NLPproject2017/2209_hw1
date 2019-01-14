@@ -213,9 +213,9 @@ experiment main type: gui {
 		
 		display chart refresh:every(20) {
 			chart "Monitoring of agitated guests over time:" type: series {
-				data "Numer of people Alive: " value: nb_people_alive color: #blue;
-				data "Numer of people agitated: " value: nb_people_agitated color: #green;
-				//data "Agitation rate" value: agitation_rate color: #red;
+				//data "Numer of people Alive: " value: nb_people_alive color: #blue;
+				//data "Numer of people agitated: " value: nb_people_agitated color: #green;
+				data "Agitation rate" value: agitation_rate color: #red;
 			}
 			
 //			chart "Monitoring of agitated guests over time:" type: series
