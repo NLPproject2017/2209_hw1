@@ -119,6 +119,7 @@ global {
 			else{
 				patient<-false;
 			}
+			
 		}
 		create store number: stores_init{
 			
@@ -159,7 +160,16 @@ global {
 		}
 		create Auctioneer number: auctioneers_init {
 			n<-'Auctioneer '+rnd(100);
+			
 			generousity<-rnd(10);
+			
+			if(rnd(2)=1){
+				charitable <- true;
+			}
+			
+			if(rnd(2)=1){
+				encouraging <- true;
+			}
 			
 			int index <- rnd(1,2);
 			add categories[index-1] to: selectCategories;
@@ -172,6 +182,7 @@ global {
 					}
 				}
 			//write name + " categories:" + selectCategories + "Items:" + sellingItems;
+			
 		}
 		/*create Participant number: participants_init {
 			//for challenge part

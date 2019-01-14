@@ -31,6 +31,8 @@ species Auctioneer skills: [fipa, moving] {
 	bool startNew<-true;
 	bool allArrived<-false;
 	bool winnerfound<-false;
+	bool charitable <-false;
+	bool encouraging <-false;
 	
 	
 	list auctionItem;
@@ -169,7 +171,8 @@ species Auctioneer skills: [fipa, moving] {
 		//Maybe always 50% discount is the min Value?
 		 
 			do start_conversation with: [ to :: list( agreedBuyers), protocol :: 'fipa-contract-net', performative :: 'cfp', 
-				contents :: ["Selling:", activeProposedItem, " at Price", activeProposedPrice]];
+				//contents :: ["Selling:", activeProposedItem, " at Price", activeProposedPrice]];
+				contents :: ["Selling:", activeProposedItem, " at Price", activeProposedPrice, " Is it For Charity:", charitable]];
 			// sista den skriver.. and ppl dont come
 			write name + " says: Selling " + activeProposedItem + " at Price: " + activeProposedPrice;
 			// stopp proposing price and check what they offered
@@ -202,7 +205,12 @@ species Auctioneer skills: [fipa, moving] {
 					// save winner until last
 					winner <- m;
 					write '\t' + name + ' sends a accept_proposal message to ' +winner ;
-					do accept_proposal with: [ message :: m, contents :: ['The ' + activeProposedItem + 'is yours.', 'winner']];
+					string encouraging_message <-'';
+					if (encouraging)
+					{
+						string encouraging_message <- 'Good luck!';
+					}
+					do accept_proposal with: [ message :: m, contents :: ['The ' + activeProposedItem + 'is yours.', 'winner', encouraging_message]];
 					// don want to sell same thing again
 					remove auctionItem from: sellingItems;
 					nameOfWinner<-m.contents[2];

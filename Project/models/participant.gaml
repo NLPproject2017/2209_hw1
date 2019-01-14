@@ -45,10 +45,18 @@ species Participant skills: [fipa,moving]{
 			proposedItem <- proposalFromAuctioneer.contents[1];
 			proposedPrice <- proposalFromAuctioneer.contents[3];
 			
+			//if auctioneer if charitable
+			//TODO: maybe read personal trait from sernder object
+			bool AuctioneerPhilanthropist<-proposalFromAuctioneer.contents[5];
+			
 			loop interestItem over: interestedToBuyItems {
 				if (interestItem[0] = proposedItem)
 				{
 					willingPrice <- interestItem[1];
+					//If Auctioneer has a intention to donate to charity, propose more for Auction 
+					if (AuctioneerPhilanthropist){
+						willingPrice <- willingPrice + 20; 
+					}
 				}
 			}
 				

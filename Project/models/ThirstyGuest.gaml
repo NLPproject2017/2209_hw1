@@ -355,6 +355,11 @@ species guest skills: [fipa,moving] {
 			
 			proposedItem <- proposalFromAuctioneer.contents[1];
 			proposedPrice <- proposalFromAuctioneer.contents[3];
+			
+			//if auctioneer if charitable
+			//TODO: maybe read personal trait from sernder object
+			bool AuctioneerPhilanthropist<-proposalFromAuctioneer.contents[5];
+			
 			if(!(proposedItem='auction over')){
 
 			loop interestItem over: interestedToBuyItems {
@@ -362,6 +367,11 @@ species guest skills: [fipa,moving] {
 				{
 					
 					willingPrice <- interestItem[1];
+					//If Auctioneer has a intention to donate to charity, propose more for Auction 
+					if (AuctioneerPhilanthropist){
+						willingPrice <- willingPrice + 20; 
+					}
+					
 					write name + "I'm interested in that item for price: "+ willingPrice;
 				}
 			}
@@ -387,6 +397,15 @@ species guest skills: [fipa,moving] {
 		reflex receive_accept_proposals when: !empty(accept_proposals) and !sold and !busyFOOD and busyAuction{
 			message m <-accept_proposals at 0; // needs to be emptied
 			string contentsOne <- m.contents[1];
+			
+			//If Auctioneer encouraging, he sends a good words which affects the mood of the Participant Guest
+			string messageFromAuctioneer <-  m.contents[2];
+			
+			if(messageFromAuctioneer = 'Good Luck!'){
+				//Going 
+				starterBadChance <- starterBadChance + 100;
+			}
+			
 			write name + '!receive_accept_proposals';
 			write name + '! ' +contentsOne ;
 			if(contentsOne='winner'){
